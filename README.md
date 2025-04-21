@@ -89,6 +89,8 @@ local Events = ReplicatedStorage:WaitForChild("Events")
 local clickEvents = {}
 local upgradeEvents = {}
 local dungeonEvents = {}
+local specialEvents = {}
+local concreteEvent
 
 -- Anti-AFK avançado
 local VirtualUser = game:GetService("VirtualUser")
@@ -195,6 +197,58 @@ urlBtn.TextColor3 = Color3.new(1, 1, 1)
 urlBtn.Font = Enum.Font.SourceSans
 urlBtn.TextSize = 12
 urlBtn.Parent = frame
+
+-- Função para enviar mensagens para o Webhook
+local function sendWebhook(title, description, color)
+    if not _G.webhookEnabled then return end
+    if _G.webhookUrl == "COLOQUE_URL_DO_WEBHOOK_AQUI" then
+        -- Notificar usuário que ele precisa configurar o webhook
+        statusLabel.Text = "Webhook: Configure a URL!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        wait(2)
+        statusLabel.TextColor3 = Color3.new(1, 1, 1)
+        statusLabel.Text = "Status: Executando"
+        return
+    end
+    
+    local data = {
+        embeds = {{
+            title = title or "Codex Script Notification",
+            description = description or "Atualização do script Codex",
+            color = color or 3447003, -- Azul por padrão
+            footer = {
+                text = "Codex Ultra Script v2.1 - Webhook Persistente"
+            },
+            timestamp = DateTime.now():ToIsoDate()
+        }}
+    }
+    
+    local success, response = pcall(function()
+        return HttpService:RequestAsync({
+            Url = _G.webhookUrl,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
+    
+    if success then
+        -- Atualizar status temporariamente para mostrar sucesso
+        statusLabel.Text = "Webhook Enviado!"
+        wait(1)
+        statusLabel.Text = "Status: Executando"
+    else
+        -- Mostrar erro no status
+        statusLabel.Text = "Erro no Webhook!"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        wait(1)
+        statusLabel.TextColor3 = Color3.new(1, 1, 1)
+        statusLabel.Text = "Status: Executando"
+        print("✗ Erro ao enviar webhook: " .. tostring(response))
+    end
+end
 
 webhookBtn.MouseButton1Click:Connect(function()
     _G.webhookEnabled = not _G.webhookEnabled
@@ -376,6 +430,16 @@ end
 -- Inicializar eventos
 spawn(preloadEvents)
 
+-- Sistema de estatísticas para o Webhook
+local stats = {
+    startTime = tick(),
+    lastSentTime = 0,
+    clickCount = 0,
+    upgradesPerformed = 0,
+    concretePrestiges = 0,
+    dungeonAttacks = 0
+}
+
 -- Sistema de auto-clickers otimizado usando RenderStepped para performance máxima
 spawn(function()
     while true do
@@ -385,6 +449,7 @@ spawn(function()
                     for i = 1, _G.floodIntensity do
                         pcall(function()
                             event:FireServer()
+                            stats.clickCount = stats.clickCount + 1
                         end)
                     end
                 end
@@ -408,6 +473,7 @@ spawn(function()
                         spawn(function()
                             pcall(function()
                                 event:FireServer(id)
+                                stats.upgradesPerformed = stats.upgradesPerformed + 1
                             end)
                         end)
                     end
@@ -425,6 +491,7 @@ spawn(function()
                         spawn(function()
                             pcall(function()
                                 event:FireServer(id, arg)
+                                stats.upgradesPerformed = stats.upgradesPerformed + 1
                             end)
                         end)
                     end
@@ -441,6 +508,7 @@ spawn(function()
             for i = 1, 5 do -- Múltiplas tentativas
                 pcall(function()
                     concreteEvent:FireServer()
+                    stats.concretePrestiges = stats.concretePrestiges + 1
                 end)
             end
         end
@@ -455,6 +523,7 @@ spawn(function()
             for i = 1, _G.floodIntensity do
                 pcall(function()
                     dungeonEvents.attack:FireServer()
+                    stats.dungeonAttacks = stats.dungeonAttacks + 1
                 end)
                 
                 pcall(function()
@@ -540,68 +609,6 @@ spawn(function()
     end
 end)
 
--- Função para enviar mensagens para o Webhook
-local function sendWebhook(title, description, color)
-    if not _G.webhookEnabled then return end
-    if _G.webhookUrl == "COLOQUE_URL_DO_WEBHOOK_AQUI" then
-        -- Notificar usuário que ele precisa configurar o webhook
-        statusLabel.Text = "Webhook: Configure a URL!"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        wait(2)
-        statusLabel.TextColor3 = Color3.new(1, 1, 1)
-        statusLabel.Text = "Status: Executando"
-        return
-    end
-    
-    local data = {
-        embeds = {{
-            title = title or "Codex Script Notification",
-            description = description or "Atualização do script Codex",
-            color = color or 3447003, -- Azul por padrão
-            footer = {
-                text = "Codex Ultra Script v2.1 - Webhook Persistente"
-            },
-            timestamp = DateTime.now():ToIsoDate()
-        }}
-    }
-    
-    local success, response = pcall(function()
-        return HttpService:RequestAsync({
-            Url = _G.webhookUrl,
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
-            Body = HttpService:JSONEncode(data)
-        })
-    end)
-    
-    if success then
-        -- Atualizar status temporariamente para mostrar sucesso
-        statusLabel.Text = "Webhook Enviado!"
-        wait(1)
-        statusLabel.Text = "Status: Executando"
-    else
-        -- Mostrar erro no status
-        statusLabel.Text = "Erro no Webhook!"
-        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        wait(1)
-        statusLabel.TextColor3 = Color3.new(1, 1, 1)
-        statusLabel.Text = "Status: Executando"
-        print("✗ Erro ao enviar webhook: " .. tostring(response))
-    end
-end
-
--- Sistema de estatísticas para o Webhook
-local stats = {
-    startTime = tick(),
-    lastSentTime = 0,
-    clickCount = 0,
-    upgradesPerformed = 0,
-    concretePrestiges = 0,
-    dungeonAttacks = 0
-}
-
 -- Monitor para enviar atualizações periódicas para o Webhook
 spawn(function()
     -- Enviar relatório inicial imediatamente
@@ -640,102 +647,6 @@ spawn(function()
                 -- Enviar estatísticas
                 sendWebhook("Codex Script - Relatório Automático", description, 3066993) -- Verde
                 stats.lastSentTime = currentTime
-                
-                -- Não resetar estatísticas para mostrar totais acumulados
-            end
-        end
-    end
-end)
-
--- Atualizar contadores para o webhook nos loops principais
-local originalSpawns = {}
-
--- Sobrescrever os spawns principais para contar estatísticas
-local originalClickLoop = spawn(function()
-    while true do
-        if _G.scriptEnabled and #clickEvents > 0 then
-            for _, event in pairs(clickEvents) do
-                if event then
-                    for i = 1, _G.floodIntensity do
-                        pcall(function()
-                            event:FireServer()
-                            stats.clickCount = stats.clickCount + 1
-                        end)
-                    end
-                end
-            end
-        end
-        wait(_G.floodDelay)
-    end
-end)
-
--- Modificar o loop de upgrades para contar estatísticas
-local originalUpgradeLoop = spawn(function()
-    while wait(0.1) do
-        if _G.scriptEnabled and #upgradeEvents > 0 then
-            for _, upgrade in pairs(upgradeEvents) do
-                local event = upgrade[1]
-                local maxId = upgrade[2]
-                
-                if event then
-                    for id = 1, maxId do
-                        spawn(function()
-                            pcall(function()
-                                event:FireServer(id)
-                                stats.upgradesPerformed = stats.upgradesPerformed + 1
-                            end)
-                        end)
-                    end
-                end
-            end
-            
-            for _, special in pairs(specialEvents) do
-                local event = special[1]
-                local maxId = special[2]
-                local arg = special[3]
-                
-                if event then
-                    for id = 1, maxId do
-                        spawn(function()
-                            pcall(function()
-                                event:FireServer(id, arg)
-                                stats.upgradesPerformed = stats.upgradesPerformed + 1
-                            end)
-                        end)
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- Modificar o loop de concrete prestige para contar estatísticas
-local originalConcreteLoop = spawn(function()
-    while wait(0.1) do
-        if _G.scriptEnabled and concreteEvent then
-            for i = 1, 5 do
-                pcall(function()
-                    concreteEvent:FireServer()
-                    stats.concretePrestiges = stats.concretePrestiges + 1
-                end)
-            end
-        end
-    end
-end)
-
--- Modificar o loop de dungeon attack para contar estatísticas
-local originalDungeonLoop = spawn(function()
-    while wait(_G.floodDelay) do
-        if _G.scriptEnabled and dungeonEvents.attack then
-            for i = 1, _G.floodIntensity do
-                pcall(function()
-                    dungeonEvents.attack:FireServer()
-                    stats.dungeonAttacks = stats.dungeonAttacks + 1
-                end)
-                
-                pcall(function()
-                    dungeonEvents.changeEnemy:FireServer(1)
-                end)
             end
         end
     end
