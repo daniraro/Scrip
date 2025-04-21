@@ -49,14 +49,26 @@ end
 loadWebhookSettings()
 
 -- Pré-carregamento de eventos
-local Events = ReplicatedStorage:WaitForChild("Events")
+local Events = ReplicatedStorage:WaitForChild("Events", 5)
+if not Events then
+    error("Não foi possível carregar os eventos do jogo.")
+end
+
 local clickEvents = {
-    Events:WaitForChild("ClickMoney"),
-    Events:FindFirstChild("ClickMoney"):FindFirstChild("AtomClicker"),
-    Events:FindFirstChild("ClickMoney"):FindFirstChild("ClickMining"),
-    Events:FindFirstChild("ClickMoney"):FindFirstChild("ClickMining2"),
-    Events:FindFirstChild("Prestige"):FindFirstChild("Runestone4")
+    Events:WaitForChild("ClickMoney", 2),
+    Events:FindFirstChild("ClickMoney"):FindFirstChild("AtomClicker", 2),
+    Events:FindFirstChild("ClickMoney"):FindFirstChild("ClickMining", 2),
+    Events:FindFirstChild("ClickMoney"):FindFirstChild("ClickMining2", 2),
+    Events:FindFirstChild("Prestige"):FindFirstChild("Runestone4", 2)
 }
+
+-- Verifique se todos os eventos foram carregados corretamente
+for _, event in pairs(clickEvents) do
+    if not event then
+        error("Não foi possível carregar um dos eventos de clique.")
+        break
+    end
+end
 
 local upgradeEvents = {
     {Events:WaitForChild("Upgrade"):WaitForChild("TranscendUpgrade"), 30},
@@ -383,7 +395,6 @@ spawn(function()
         end
     end
 end)
-
 
 -- Keybind
 UserInputService.InputBegan:Connect(function(input)
