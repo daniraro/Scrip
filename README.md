@@ -1,5 +1,5 @@
--- ✅ SCRIPT PARA CODEX
--- 🟣 VERSÃO ULTRA OTIMIZADA COM WEBHOOK
+-- ✅ SCRIPT CODEX ULTRA OTIMIZADO COM WEBHOOK
+-- 🟣 VERSÃO ATUALIZADA E REVISADA
 
 -- Serviços do Roblox
 local Players = game:GetService("Players")
@@ -10,12 +10,12 @@ local HttpService = game:GetService("HttpService")
 local DataStoreService = game:GetService("DataStoreService")
 
 -- Configurações do script
-_G.scriptEnabled = true
-_G.floodIntensity = 50
-_G.floodDelay = 0.001
-_G.webhookEnabled = true
-_G.webhookInterval = 10
-_G.webhookUrl = "COLOQUE_URL_DO_WEBHOOK_AQUI"
+local scriptEnabled = true
+local floodIntensity = 50
+local floodDelay = 0.001
+local webhookEnabled = true
+local webhookInterval = 10
+local webhookUrl = "COLOQUE_URL_DO_WEBHOOK_AQUI"
 
 -- Funções de persistência do Webhook
 local function loadWebhookSettings()
@@ -25,7 +25,7 @@ local function loadWebhookSettings()
     end)
     
     if success and result and type(result) == "string" and result:sub(1, 8) == "https://" then
-        _G.webhookUrl = result
+        webhookUrl = result
         print("✓ Webhook URL carregado do armazenamento!")
         return true
     end
@@ -159,7 +159,7 @@ urlBtn.Parent = frame
 
 -- Função para enviar mensagens para o Webhook
 local function sendWebhook(title, description, color)
-    if not _G.webhookEnabled or _G.webhookUrl == "COLOQUE_URL_DO_WEBHOOK_AQUI" then
+    if not webhookEnabled or webhookUrl == "COLOQUE_URL_DO_WEBHOOK_AQUI" then
         statusLabel.Text = "Webhook: Configure a URL!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         wait(2)
@@ -182,7 +182,7 @@ local function sendWebhook(title, description, color)
     
     local success, response = pcall(function()
         return HttpService:RequestAsync({
-            Url = _G.webhookUrl,
+            Url = webhookUrl,
             Method = "POST",
             Headers = {
                 ["Content-Type"] = "application/json"
@@ -207,9 +207,9 @@ end
 
 -- Eventos de interface
 webhookBtn.MouseButton1Click:Connect(function()
-    _G.webhookEnabled = not _G.webhookEnabled
-    webhookBtn.Text = "WEBHOOK: " .. (_G.webhookEnabled and "ON" or "OFF")
-    webhookBtn.BackgroundColor3 = _G.webhookEnabled and Color3.fromRGB(0, 120, 180) or Color3.fromRGB(100, 100, 100)
+    webhookEnabled = not webhookEnabled
+    webhookBtn.Text = "WEBHOOK: " .. (webhookEnabled and "ON" or "OFF")
+    webhookBtn.BackgroundColor3 = webhookEnabled and Color3.fromRGB(0, 120, 180) or Color3.fromRGB(100, 100, 100)
 end)
 
 urlBtn.MouseButton1Click:Connect(function()
@@ -218,16 +218,16 @@ urlBtn.MouseButton1Click:Connect(function()
 end)
 
 toggleBtn.MouseButton1Click:Connect(function()
-    _G.scriptEnabled = not _G.scriptEnabled
-    toggleBtn.Text = _G.scriptEnabled and "ATIVADO" or "DESATIVADO"
-    toggleBtn.BackgroundColor3 = _G.scriptEnabled and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
-    statusLabel.Text = "Status: " .. (_G.scriptEnabled and "Executando" or "Pausado")
+    scriptEnabled = not scriptEnabled
+    toggleBtn.Text = scriptEnabled and "ATIVADO" or "DESATIVADO"
+    toggleBtn.BackgroundColor3 = scriptEnabled and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+    statusLabel.Text = "Status: " .. (scriptEnabled and "Executando" or "Pausado")
 end)
 
 -- Anti-AFK
 spawn(function()
     while wait(20) do
-        if _G.scriptEnabled then
+        if scriptEnabled then
             local VirtualUser = game:GetService("VirtualUser")
             VirtualUser:CaptureController()
             VirtualUser:ClickButton2(Vector2.new())
@@ -266,10 +266,10 @@ local stats = {
 -- Auto-clicker
 spawn(function()
     while true do
-        if _G.scriptEnabled and #clickEvents > 0 then
+        if scriptEnabled and #clickEvents > 0 then
             for _, event in pairs(clickEvents) do
                 if event then
-                    for i = 1, _G.floodIntensity do
+                    for i = 1, floodIntensity do
                         pcall(function()
                             event:FireServer()
                             stats.clickCount = stats.clickCount + 1
@@ -278,14 +278,14 @@ spawn(function()
                 end
             end
         end
-        wait(_G.floodDelay)
+        wait(floodDelay)
     end
 end)
 
 -- Upgrades paralelos
 spawn(function()
     while wait(0.1) do
-        if _G.scriptEnabled and #upgradeEvents > 0 then
+        if scriptEnabled and #upgradeEvents > 0 then
             for _, upgrade in pairs(upgradeEvents) do
                 local event = upgrade[1]
                 local maxId = upgrade[2]
@@ -325,7 +325,7 @@ end)
 -- Concrete Prestige
 spawn(function()
     while wait(0.1) do
-        if _G.scriptEnabled and concreteEvent then
+        if scriptEnabled and concreteEvent then
             for i = 1, 5 do
                 pcall(function()
                     concreteEvent:FireServer()
@@ -338,9 +338,9 @@ end)
 
 -- Dungeon Attack
 spawn(function()
-    while wait(_G.floodDelay) do
-        if _G.scriptEnabled and dungeonEvents.attack then
-            for i = 1, _G.floodIntensity do
+    while wait(floodDelay) do
+        if scriptEnabled and dungeonEvents.attack then
+            for i = 1, floodIntensity do
                 pcall(function()
                     dungeonEvents.attack:FireServer()
                     stats.dungeonAttacks = stats.dungeonAttacks + 1
@@ -357,7 +357,7 @@ end)
 -- Dungeon Rebirth
 spawn(function()
     while wait(0.5) do
-        if _G.scriptEnabled and dungeonEvents.rebirth then
+        if scriptEnabled and dungeonEvents.rebirth then
             for i = 1, 3 do
                 pcall(function()
                     dungeonEvents.rebirth:FireServer()
@@ -370,7 +370,7 @@ end)
 -- Dungeon Upgrades
 spawn(function()
     while wait(0.01) do
-        if _G.scriptEnabled and #dungeonEvents.upgrades > 0 then
+        if scriptEnabled and #dungeonEvents.upgrades > 0 then
             for _, upgrade in pairs(dungeonEvents.upgrades) do
                 for id = 1, 10 do
                     spawn(function()
@@ -384,9 +384,6 @@ spawn(function()
     end
 end)
 
--- Keybind
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCodeContinuando o código:
 
 -- Keybind
 UserInputService.InputBegan:Connect(function(input)
@@ -395,24 +392,24 @@ UserInputService.InputBegan:Connect(function(input)
         frame.Visible = not frame.Visible
     elseif input.KeyCode == Enum.KeyCode.M then
         -- Toggle ativação
-        _G.scriptEnabled = not _G.scriptEnabled
-        toggleBtn.Text = _G.scriptEnabled and "ATIVADO" or "DESATIVADO"
-        toggleBtn.BackgroundColor3 = _G.scriptEnabled and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
-        statusLabel.Text = "Status: " .. (_G.scriptEnabled and "Executando" or "Pausado")
+        scriptEnabled = not scriptEnabled
+        toggleBtn.Text = scriptEnabled and "ATIVADO" or "DESATIVADO"
+        toggleBtn.BackgroundColor3 = scriptEnabled and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+        statusLabel.Text = "Status: " .. (scriptEnabled and "Executando" or "Pausado")
     elseif input.KeyCode == Enum.KeyCode.B then
         -- Boost temporário
-        local oldIntensity = _G.floodIntensity
-        local oldDelay = _G.floodDelay
+        local oldIntensity = floodIntensity
+        local oldDelay = floodDelay
         
-        _G.floodIntensity = 100
-        _G.floodDelay = 0.0005
+        floodIntensity = 100
+        floodDelay = 0.0005
         
         statusLabel.Text = "Status: BOOST ATIVADO"
         
         wait(5)
         
-        _G.floodIntensity = oldIntensity
-        _G.floodDelay = oldDelay
+        floodIntensity = oldIntensity
+        floodDelay = oldDelay
         statusLabel.Text = "Status: Executando"
     end
 end)
@@ -425,7 +422,7 @@ spawn(function()
         local minutes = math.floor(runtime / 60)
         local seconds = runtime % 60
         
-        if _G.scriptEnabled then
+        if scriptEnabled then
             statusLabel.Text = string.format("Tempo: %02d:%02d", minutes, seconds)
         end
     end
@@ -436,10 +433,10 @@ spawn(function()
     sendWebhook("Codex Script Iniciado", "O script foi inicializado com sucesso!\n\nVersão: Ultra Otimizada com Webhook Persistente", 15105570)
     
     while wait(1) do
-        if _G.scriptEnabled and _G.webhookEnabled then
+        if scriptEnabled and webhookEnabled then
             local currentTime = tick()
             
-            if currentTime - stats.lastSentTime >= _G.webhookInterval then
+            if currentTime - stats.lastSentTime >= webhookInterval then
                 local runTime = currentTime - stats.startTime
                 local hours = math.floor(runTime / 3600)
                 local minutes = math.floor((runTime % 3600) / 60)
@@ -475,4 +472,4 @@ print("✓ Script Codex Ultra Otimizado com Webhook Inicializado!")
 print("✓ Pressione N para ocultar a interface")
 print("✓ Pressione M para ativar/desativar o script")
 print("✓ Pressione B para um boost temporário")
-print("✓ Webhook " .. (_G.webhookEnabled and "ativado" or "desativado") .. " - Envie relatórios para Discord")
+print("✓ Webhook " .. (webhookEnabled and "ativado" or "desativado") .. " - Envie relatórios para Discord")
