@@ -1,0 +1,23 @@
+{
+  "servers": {
+    "perplexity": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "C:\\Users\\Win10\\perplexity-mcp\\server.js"
+      ],
+      "env": {
+        "PERPLEXITY_API_KEY": "${input:perplexity-key}",
+        "PATH": "${env:PATH}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "perplexity-key",
+      "description": "Perplexity API Key",
+      "password": true
+    }
+  ]
+}
