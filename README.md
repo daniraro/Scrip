@@ -1,3 +1,38 @@
+# Codex Webhook Bridge (opcional)
+
+Se o envio direto por `HttpService` no ambiente Lua não funcionar, você pode usar este pequeno "bridge" local em Python para ler mensagens enfileiradas pelo script Lua (arquivo `CodexWebhookQueue.json`) e enviá-las ao Discord.
+
+Como funciona
+- O `Script.lua` foi atualizado para, quando o envio direto falhar, enfileirar mensagens em `CodexWebhookQueue.json` (arquivo JSON contendo um array de objetos {title, description, color, ts}).
+- Execute `webhook_bridge.py` na mesma máquina. Ele fará polling desse arquivo e enviará as mensagens ao webhook Discord configurado.
+
+Instalação e uso
+1. Instale Python 3.8+ e o pacote `requests`:
+
+```powershell
+pip install requests
+```
+
+2. Execute o bridge apontando para seu webhook:
+
+```powershell
+python webhook_bridge.py --webhook "https://discord.com/api/webhooks/..." --file "C:/path/to/CodexWebhookQueue.json" --poll 2
+```
+
+- Se o `Script.lua` estiver gravando o arquivo em um local diferente (dependendo do executor Lua), passe o caminho correto com `--file`.
+- Caso o executor Lua não suporte `writefile`/`readfile` (ambiente oficial Roblox), este bridge NÃO funcionará — ele depende do executor gravar o arquivo localmente.
+
+Debug
+- Se nenhuma mensagem chega ao Discord, verifique:
+  - O arquivo `CodexWebhookQueue.json` está sendo criado e contém JSON válido.
+  - O bridge é executado com permissões para ler/alterar o arquivo.
+  - O webhook Discord é válido e não ultrapassou rate limits.
+
+Observações de segurança
+- Não compartilhe seu webhook publicamente — ele permite postar diretamente no canal.
+- O bridge envia as mensagens como texto/embeds simples; você pode estender para adicionar mais campos.
+
+Se quiser, eu adapto o bridge para executar como serviço (Windows service / systemd), ou criar uma versão Node.js se preferir.
 -- ✅ SCRIPT CODEX ULTRA OTIMIZADO COM WEBHOOK
 -- 🟣 VERSÃO ATUALIZADA E REVISADA
 

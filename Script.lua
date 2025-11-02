@@ -5,130 +5,115 @@ local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
+-- Enhanced sendWebhook: tenta múltiplos backends HTTP (executor-specific) antes de enfileirar
+local function sendWebhook(title, description, color)
+    if not _G.webhookEnabled then return false end
 
--- Inicializa variável global
-_G.scriptEnabled = true
-_G.floodIntensity = 50 -- Aumentado para melhor desempenho
-_G.floodDelay = 0.001 -- Reduzido para executar mais rápido
-
--- Modificar configuração do Webhook
-_G.webhookEnabled = true
-_G.webhookInterval = 30 -- Aumentado para 30 segundos para evitar rate limiting
-_G.webhookUrl = "" -- Será preenchido depois
-
--- Sistema de persistência para o webhook URL
-local DataStoreService = game:GetService("DataStoreService")
-local playerName = Players.LocalPlayer.Name
-local configStore
-
--- Criar um único identificador para o jogador
-local webhookKey = "CodexWebhook_" .. playerName
-
--- Tenta carregar o URL do webhook salvo anteriormente
-local function loadWebhookSettings()
-    local success, result
-    
-    -- Tentar diferentes métodos de armazenamento persistente
-    pcall(function()
-        configStore = DataStoreService:GetDataStore("CodexConfig")
-        success, result = pcall(function() 
-            return configStore:GetAsync(webhookKey)
-        end)
-    end)
-    
-    -- Tentar com WritableFolder se disponível (método alternativo)
-    if not success or not result then
-        pcall(function()
-            if writefile and readfile and isfile then
-                local filename = "CodexWebhook.txt"
-                if isfile(filename) then
-                    result = readfile(filename)
-                end
-            end
-        end)
-    end
-    
-    -- Se encontrou um URL salvo, usar
-    if result and type(result) == "string" and result:sub(1, 8) == "https://" then
-        _G.webhookUrl = result
-        print("✓ Webhook URL carregado do armazenamento!")
-        return true
-    end
-    
-    -- Nenhum URL encontrado
-    _G.webhookUrl = "COLOQUE_URL_DO_WEBHOOK_AQUI"
-    return false
-end
-
--- Salvar o URL do webhook para uso futuro
-local function saveWebhookSettings(url)
-    if not url or type(url) ~= "string" or url:sub(1, 8) ~= "https://" then
+    if not _G.webhookUrl or _G.webhookUrl == "" or _G.webhookUrl == "COLOQUE_URL_DO_WEBHOOK_AQUI" then
+        if statusLabel then statusLabel.Text = "Configure o Webhook!" end
         return false
     end
-    
-    -- Tentar diferentes métodos de armazenamento persistente
-    pcall(function()
-        configStore:SetAsync(webhookKey, url)
-    end)
-    
-    pcall(function()
-        if writefile then
-            writefile("CodexWebhook.txt", url)
+
+    local embed = {
+        title = title,
+        description = description,
+        color = color,
+        footer = { text = "Codex Ultra Script v2.1" },
+        timestamp = DateTime.now():ToIsoDate()
+    }
+
+    local payload = { content = "", embeds = { embed } }
+    local body = HttpService:JSONEncode(payload)
+
+    local function normalizeResponse(res)
+        if type(res) == "table" and res.StatusCode then
+            return res
+        elseif type(res) == "table" and res.status then
+            return { StatusCode = res.status, Body = res.body or res.text }
+        elseif type(res) == "string" then
+            return { StatusCode = 200, Body = res }
+        else
+            return { StatusCode = 0, Body = res }
         end
-    end)
-    
-    print("✓ Webhook URL salvo com sucesso!")
+    end
+
+    local function tryRequestCall(fn)
+        local ok, res = pcall(fn)
+        if ok and res then return normalizeResponse(res) end
+        return nil
+    end
+
+    local response = nil
+
+    -- syn.request (Synapse)
+    if not response and syn and syn.request then
+        response = tryRequestCall(function()
+            return syn.request({ Url = _G.webhookUrl, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = body })
+        end)
+    end
+
+    -- http.request (some executors)
+    if not response and http and http.request then
+        response = tryRequestCall(function()
+            return http.request({ Url = _G.webhookUrl, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = body })
+        end)
+    end
+
+    -- http_request (fluxus / old)
+    if not response and http_request then
+        response = tryRequestCall(function()
+            return http_request({ Url = _G.webhookUrl, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = body })
+        end)
+    end
+
+    -- request (KRNL etc)
+    if not response and request then
+        response = tryRequestCall(function()
+            return request({ Url = _G.webhookUrl, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = body })
+        end)
+    end
+
+    -- Roblox HttpService last
+    if not response then
+        local ok, res = pcall(function()
+            if HttpService.RequestAsync then
+                return HttpService:RequestAsync({ Url = _G.webhookUrl, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = body })
+            else
+                local resBody = HttpService:PostAsync(_G.webhookUrl, body, Enum.HttpContentType.ApplicationJson)
+                return { StatusCode = 200, Body = resBody }
+            end
+        end)
+        if ok and res then response = normalizeResponse(res) end
+    end
+
+    if not response or (response.StatusCode ~= 204 and response.StatusCode ~= 200) then
+        -- fallback: enfileirar usando writefile (executor) se disponível
+        pcall(function()
+            if writefile and readfile and isfile then
+                local queueFile = "CodexWebhookQueue.json"
+                local existing = "[]"
+                if isfile(queueFile) then existing = readfile(queueFile) end
+                local okDecode, list = pcall(function() return HttpService:JSONDecode(existing) end)
+                if not okDecode or type(list) ~= "table" then list = {} end
+                table.insert(list, { title = title, description = description, color = color, ts = DateTime.now():ToIsoDate(), err = (response and response.StatusCode) or "no-method" })
+                writefile(queueFile, HttpService:JSONEncode(list))
+                if statusLabel then statusLabel.Text = "Webhook enfileirado" end
+                task.wait(1)
+                if statusLabel then statusLabel.Text = "Status: Executando" end
+            else
+                warn("Falha ao enviar webhook e sem writefile disponível para enfileirar.")
+                if statusLabel then statusLabel.Text = "Erro no Webhook!" end
+                task.wait(1)
+                if statusLabel then statusLabel.Text = "Status: Executando" end
+            end
+        end)
+        return false
+    end
+
+    if statusLabel then statusLabel.Text = "Webhook enviado" end
+    task.wait(1)
+    if statusLabel then statusLabel.Text = "Status: Executando" end
     return true
-end
-
--- Carregar configurações salvas
-loadWebhookSettings()
-
--- Cache de eventos para melhor desempenho
-local Events = ReplicatedStorage:WaitForChild("Events")
-local clickEvents = {}
-local upgradeEvents = {}
-local dungeonEvents = {}
-
--- Anti-AFK avançado
-local VirtualUser = game:GetService("VirtualUser")
-spawn(function()
-    while wait(20) do -- Reduzido para 20 segundos para garantir que não haja desconexão
-        if _G.scriptEnabled then
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new())
-            VirtualUser:SetKeyDown(0x20) -- Espaço
-            wait(0.1)
-            VirtualUser:SetKeyUp(0x20)
-        end
-    end
-end)
-
--- Criar GUI aprimorada
-local gui = Instance.new("ScreenGui")
-gui.Name = "CodexHUDPro"
-gui.ResetOnSpawn = false
-pcall(function()
-    if syn then
-        syn.protect_gui(gui)
-    end
-    gui.Parent = game:GetService("CoreGui")
-end)
-
--- Safety stubs: alguns blocos duplicados no arquivo referenciam `saveBtn` globalmente.
--- Criamos um stub mínimo para evitar erros de runtime; os handlers reais são criados quando o prompt é instanciado.
-if not saveBtn then
-    saveBtn = {}
-    saveBtn.MouseButton1Click = {}
-    function saveBtn.MouseButton1Click:Connect(fn) -- accept the callback but don't call it
-        -- noop: real saveBtn is created in the prompt and will overwrite this
-        return
-    end
-end
-
-if gui.Parent == nil then
-    gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
 -- Janela principal com design melhorado
@@ -260,6 +245,47 @@ urlBtn.Parent = frame
 local urlCorner = Instance.new("UICorner")
 urlCorner.CornerRadius = UDim.new(0, 6)
 urlCorner.Parent = urlBtn
+
+-- Registrar início do script para uptime (se ainda não houver)
+if not scriptStartTime then scriptStartTime = tick() end
+
+-- Botão para enviar manualmente informações do jogo via webhook
+local sendInfoBtn = Instance.new("TextButton")
+sendInfoBtn.Size = UDim2.new(0.45, 0, 0, 20)
+sendInfoBtn.Position = UDim2.new(0.5, 0, 0.78, 0)
+sendInfoBtn.Text = "ENVIAR INFORMAÇÕES"
+sendInfoBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 110)
+sendInfoBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
+sendInfoBtn.Font = Enum.Font.SourceSansBold
+sendInfoBtn.TextSize = 12
+sendInfoBtn.AutoButtonColor = true
+sendInfoBtn.Parent = frame
+
+local sendCorner = Instance.new("UICorner")
+sendCorner.CornerRadius = UDim.new(0, 6)
+sendCorner.Parent = sendInfoBtn
+
+sendInfoBtn.MouseButton1Click:Connect(function()
+    if not _G.webhookEnabled then
+        if statusLabel then statusLabel.Text = "Webhook desativado" end
+        return
+    end
+    if not _G.webhookUrl or _G.webhookUrl == "" then
+        if statusLabel then statusLabel.Text = "Configure o Webhook!" end
+        return
+    end
+
+    local uptime = "0"
+    pcall(function() uptime = tostring(math.floor(tick() - (scriptStartTime or tick()))) end)
+    local description = string.format("📢 **Relatório do Jogo**\n👤 Jogador: %s\n🏷️ PlaceId: %s\n⏱ Uptime(s): %s\n🖥 FPS: %s\nStatus: %s",
+        Players.LocalPlayer and Players.LocalPlayer.Name or "-",
+        tostring(game.PlaceId),
+        uptime,
+        tostring(fps or 0),
+        _G.scriptEnabled and "Executando" or "Pausado")
+
+    sendWebhook("📨 Relatório Manual", description, 16751616)
+end)
 
 webhookBtn.MouseButton1Click:Connect(function()
     _G.webhookEnabled = not _G.webhookEnabled
@@ -649,6 +675,23 @@ local function sendWebhook(title, description, color)
         if statusLabel then statusLabel.Text = "Erro no Webhook!" end
         task.wait(1)
         if statusLabel then statusLabel.Text = "Status: Executando" end
+        -- Se existir API de arquivos no executor, enfileirar o payload para envio externo
+        pcall(function()
+            if writefile and readfile and isfile then
+                local queueFile = "CodexWebhookQueue.json"
+                local existing = "[]"
+                if isfile(queueFile) then
+                    existing = readfile(queueFile)
+                end
+                local okDecode, list = pcall(function() return HttpService:JSONDecode(existing) end)
+                if not okDecode or type(list) ~= "table" then list = {} end
+                table.insert(list, { title = title, description = description, color = color, ts = DateTime.now():ToIsoDate() })
+                writefile(queueFile, HttpService:JSONEncode(list))
+                if statusLabel then statusLabel.Text = "Webhook enfileirado" end
+                task.wait(1)
+                if statusLabel then statusLabel.Text = "Status: Executando" end
+            end
+        end)
         return false
     end
 
@@ -663,6 +706,23 @@ local function sendWebhook(title, description, color)
         if statusLabel then statusLabel.Text = "Erro no Webhook!" end
         task.wait(1)
         if statusLabel then statusLabel.Text = "Status: Executando" end
+        -- Enfileira também se houver suporte a arquivos
+        pcall(function()
+            if writefile and readfile and isfile then
+                local queueFile = "CodexWebhookQueue.json"
+                local existing = "[]"
+                if isfile(queueFile) then
+                    existing = readfile(queueFile)
+                end
+                local okDecode, list = pcall(function() return HttpService:JSONDecode(existing) end)
+                if not okDecode or type(list) ~= "table" then list = {} end
+                table.insert(list, { title = title, description = description, color = color, ts = DateTime.now():ToIsoDate(), statusCode = statusCode })
+                writefile(queueFile, HttpService:JSONEncode(list))
+                if statusLabel then statusLabel.Text = "Webhook enfileirado" end
+                task.wait(1)
+                if statusLabel then statusLabel.Text = "Status: Executando" end
+            end
+        end)
         return false
     end
 end
