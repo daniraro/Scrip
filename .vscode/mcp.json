@@ -2,7 +2,8 @@
   "servers": {
     "perplexity": {
       "type": "stdio",
-      "command": "C:\\Program Files\\nodejs\\node.exe",
+      
+      "command": "node",
 
       "args": [
         "C:\\Users\\Win10\\perplexity-mcp\\server.js"
