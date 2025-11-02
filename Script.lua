@@ -493,6 +493,29 @@ end)
 
 -- Pré-carregamento de todos os eventos para melhor desempenho
 local function preloadEvents()
+    local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
+    
+    -- Função auxiliar para verificar eventos
+    local function verifyEvent(parent, name)
+        local event = parent:WaitForChild(name)
+        if not event then warn("❌ Falha ao carregar: " .. name) end
+        return event
+    end
+    
+    -- Carregar DungeonAttack primeiro (crítico)
+    local DungeonAttack = verifyEvent(Events, "DungeonAttack")
+    
+    -- Eventos de Dungeon (com verificação)
+    dungeonEvents = {
+        attack = DungeonAttack,
+        changeEnemy = verifyEvent(DungeonAttack, "ChangeEnemy"),
+        rebirth = verifyEvent(DungeonAttack, "DungeonRebirth"),
+        upgrades = {
+            verifyEvent(DungeonAttack, "DungeonUpgrade"),
+            verifyEvent(DungeonAttack, "DungeonUpgrade2")
+        }
+    }
+
     -- Eventos de clique
     clickEvents = {
         Events:WaitForChild("ClickMoney"),
@@ -529,21 +552,6 @@ local function preloadEvents()
         {Events:WaitForChild("Upgrade"):WaitForChild("RuneUpgrade"), 20, false},
         {Events:WaitForChild("Upgrade"):WaitForChild("GemUpgrade"), 15, true}
     }
-    
-    -- Eventos de Dungeon
-    dungeonEvents = {
-        attack = Events:WaitForChild("DungeonAttack"),
-        changeEnemy = Events:WaitForChild("DungeonAttack"):WaitForChild("ChangeEnemy"),
-        rebirth = Events:WaitForChild("DungeonAttack"):WaitForChild("DungeonRebirth"),
-        upgrades = {
-            Events:WaitForChild("DungeonAttack"):WaitForChild("DungeonUpgrade"),
-            Events:WaitForChild("DungeonAttack"):WaitForChild("DungeonUpgrade2"),
-            Events:WaitForChild("DungeonAttack"):WaitForChild("DungeonRebirthUpgrade")
-        }
-    }
-    
-    -- Concrete Event
-    concreteEvent = Events:WaitForChild("Prestige"):WaitForChild("ConcretePrestige")
     
     print("✓ Eventos pré-carregados com sucesso!")
     statusLabel.Text = "Status: Eventos carregados"
@@ -623,21 +631,27 @@ spawn(function()
     end
 end)
 
--- DUNGEON ATTACK otimizado (ultra-rápido)
+-- DUNGEON ATTACK otimizado (ultra-rápido e com verificações)
 spawn(function()
     while wait(_G.floodDelay) do
-        if _G.scriptEnabled and dungeonEvents.attack then
-            -- Ataques em massa
+        if not _G.scriptEnabled then continue end
+        
+        pcall(function()
+            -- Referência direta aos eventos
+            local DungeonAttack = game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("DungeonAttack")
+            local ChangeEnemy = DungeonAttack:WaitForChild("ChangeEnemy")
+            
             for i = 1, _G.floodIntensity do
                 pcall(function()
-                    dungeonEvents.attack:FireServer()
-                end)
-                
-                pcall(function()
-                    dungeonEvents.changeEnemy:FireServer(1)
+                    -- Attack principal
+                    DungeonAttack:FireServer()
+                    
+                    -- ChangeEnemy com args corretos
+                    local args = {[1] = 1}
+                    ChangeEnemy:FireServer(unpack(args))
                 end)
             end
-        end
+        end)
     end
 end)
 
@@ -645,7 +659,7 @@ end)
 spawn(function()
     while wait(0.5) do
         if _G.scriptEnabled and dungeonEvents.rebirth then
-            for i = 1, 3 do -- Múltiplas tentativas para garantir
+            for i = 1, 3 do
                 pcall(function()
                     dungeonEvents.rebirth:FireServer()
                 end)
@@ -665,16 +679,16 @@ spawn(function()
                 -- Batch dungeon upgrades em uma única thread
                 task.spawn(function()
                     for _, upgrade in ipairs(dungeonEvents.upgrades) do
-                        for id = 1, (_G.floodIntensity / 2) do -- Reduzido para evitar spam
+                        for id = 1, (_G.floodIntensity / 2) do
                             pcall(function()
-                                upgrade:FireServer(id)
+                                upgrade:FireServer()
                             end)
                         end
                     end
                 end)
             end
         end
-        task.wait(0.1) -- Tick rate base de 100ms
+        task.wait(0.1)
     end
 end)
 
