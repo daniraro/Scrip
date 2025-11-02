@@ -1,10 +1,51 @@
 -- ✅ SCRIPT PARA CODEX
--- 🟣 VERSÃO ULTRA OTIMIZADA COM WEBHOOK
+-- 🟣 VERSÃO ULTRA OTIMIZADA V2.2 (PERFORMANCE ENHANCED)
+
+-- Configuração de delays padrão (ajustáveis) - valores otimizados 2024
+if _G.autoClickDelay == nil then _G.autoClickDelay = 0.25 end     -- 250ms entre clicks (reduz carga)
+if _G.upgradeDelay == nil then _G.upgradeDelay = 2.0 end          -- 2000ms entre upgrades (evita spam)
+if _G.dungeonDelay == nil then _G.dungeonDelay = 0.5 end          -- 500ms entre ações dungeon
+if _G.uiUpdateDelay == nil then _G.uiUpdateDelay = 1.0 end        -- 1000ms entre updates de UI
+if _G.webhookInterval == nil then _G.webhookInterval = 120 end     -- 120s entre webhooks
+if _G.floodIntensity == nil then _G.floodIntensity = 3 end        -- Reduzido para 3 eventos por ciclo
+if _G.floodDelay == nil then _G.floodDelay = 0.25 end             -- 250ms entre floods
+
+-- Configurações locais de throttling
+local throttleConfig = {
+    clickTickRate = 0.05,    -- Taxa base de verificação (50ms)
+    upgradeTickRate = 0.1,   -- Taxa base de upgrades (100ms)
+    dungeonTickRate = 0.25,  -- Taxa base de dungeon (250ms)
+    lastClickTime = 0,       -- Último click processado
+    lastUpgradeTime = 0,     -- Último upgrade processado
+    lastDungeonTime = 0      -- Última ação dungeon
+}
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+
+-- Criar ScreenGui root
+local gui = Instance.new("ScreenGui")
+gui.Name = "CodexUltraGui"
+gui.ResetOnSpawn = false
+
+-- Tentar parent seguro
+pcall(function()
+    if syn then syn.protect_gui(gui) end
+    gui.Parent = game:GetService("CoreGui")
+end)
+
+if gui.Parent == nil then
+    gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Tracking de performance e UI
+local lastUIUpdate = 0
+local lastFPSUpdate = 0
+local startTime = tick()
+
 -- Enhanced sendWebhook: tenta múltiplos backends HTTP (executor-specific) antes de enfileirar
 local function sendWebhook(title, description, color)
     if not _G.webhookEnabled then return false end
@@ -117,9 +158,22 @@ local function sendWebhook(title, description, color)
 end
 
 -- Janela principal com design melhorado
+-- Criar ScreenGui antes do frame
+local gui = Instance.new("ScreenGui")
+gui.Name = "CodexUltraGui"
+
+pcall(function()
+    if syn then syn.protect_gui(gui) end
+    gui.Parent = game:GetService("CoreGui")
+end)
+
+if gui.Parent == nil then
+    gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+end
+
 local frame = Instance.new("Frame")
 frame.Name = "MainFrame"
-frame.Size = UDim2.new(0, 200, 0, 150) -- Tamanho aumentado para acomodar controles webhook
+frame.Size = UDim2.new(0, 200, 0, 150)
 frame.Position = UDim2.new(0.05, 0, 0.05, 0)
 frame.BackgroundColor3 = Color3.fromRGB(22, 24, 34)
 frame.BorderSizePixel = 0
@@ -285,6 +339,36 @@ sendInfoBtn.MouseButton1Click:Connect(function()
         _G.scriptEnabled and "Executando" or "Pausado")
 
     sendWebhook("📨 Relatório Manual", description, 16751616)
+end)
+
+-- Botão para alternar modo compacto (esconder informações extras para UI mais leve)
+local compactBtn = Instance.new("TextButton")
+compactBtn.Size = UDim2.new(0.9, 0, 0, 18)
+compactBtn.Position = UDim2.new(0.05, 0, 0.92, 0)
+compactBtn.Text = "Modo Compacto: OFF"
+compactBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+compactBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
+compactBtn.Font = Enum.Font.SourceSans
+compactBtn.TextSize = 11
+compactBtn.AutoButtonColor = true
+compactBtn.Parent = frame
+
+local compactCorner = Instance.new("UICorner")
+compactCorner.CornerRadius = UDim.new(0, 6)
+compactCorner.Parent = compactBtn
+
+local compactMode = false
+local function setCompactMode(on)
+    compactMode = on
+    compactBtn.Text = "Modo Compacto: " .. (on and "ON" or "OFF")
+    if fpsLabel then fpsLabel.Visible = not on end
+    if statusLabel then statusLabel.Visible = not on end
+    if sendInfoBtn then sendInfoBtn.Visible = not on end
+    -- mantemos botões essenciais visíveis (toggleBtn, webhookBtn, urlBtn)
+end
+
+compactBtn.MouseButton1Click:Connect(function()
+    setCompactMode(not compactMode)
 end)
 
 webhookBtn.MouseButton1Click:Connect(function()
@@ -728,15 +812,24 @@ local function sendWebhook(title, description, color)
 end
 
 -- Heartbeat: envia periodicamente um resumo simples quando o webhook estiver ativo
+-- Auto-send: envia periodicamente um relatório completo quando o webhook estiver ativo
+if _G.webhookAutoInfo == nil then _G.webhookAutoInfo = true end
 spawn(function()
     while true do
         local interval = tonumber(_G.webhookInterval) or 30
         wait(interval)
-        if _G.webhookEnabled and _G.webhookUrl and type(_G.webhookUrl) == "string" and _G.webhookUrl:match("^https://discord.com/api/webhooks/") then
-            local ok = pcall(function()
-                sendWebhook("📡 Codex Status",
-                    string.format("Script rodando. Jogador: %s\nPlaceId: %s", Players.LocalPlayer.Name or "-", tostring(game.PlaceId)),
-                    3066993)
+        if _G.webhookAutoInfo and _G.webhookEnabled and _G.webhookUrl and type(_G.webhookUrl) == "string" and _G.webhookUrl:match("^https://discord.com/api/webhooks/") then
+            local uptime = "0"
+            pcall(function() uptime = tostring(math.floor(tick() - (scriptStartTime or tick()))) end)
+            local ok, err = pcall(function()
+                local description = string.format("📡 **Atualização Automática**\n👤 Jogador: %s\n🏷️ PlaceId: %s\n⏱ Uptime(s): %s\n🖥 FPS: %s\nStatus: %s",
+                    Players.LocalPlayer and Players.LocalPlayer.Name or "-",
+                    tostring(game.PlaceId),
+                    uptime,
+                    tostring(fps or 0),
+                    _G.scriptEnabled and "Executando" or "Pausado")
+
+                sendWebhook("📡 Codex Status (Auto)", description, 3066993)
             end)
             -- não bloquear se falhar
         end
@@ -1919,20 +2012,27 @@ spawn(function()
     end
 end)
 
--- DUNGEON UPGRADES otimizado
+-- DUNGEON UPGRADES otimizado com throttling
+local lastDungeonUpgradeTime = 0
 spawn(function()
-    while wait(0.01) do
+    while true do
         if _G.scriptEnabled and #dungeonEvents.upgrades > 0 then
-            for _, upgrade in pairs(dungeonEvents.upgrades) do
-                for id = 1, 10 do
-                    spawn(function()
-                        pcall(function()
-                            upgrade:FireServer(id)
-                        end)
-                    end)
-                end
+            local now = tick()
+            if now - lastDungeonUpgradeTime >= (_G.dungeonDelay or 0.25) then
+                lastDungeonUpgradeTime = now
+                -- Batch dungeon upgrades em uma única thread
+                task.spawn(function()
+                    for _, upgrade in ipairs(dungeonEvents.upgrades) do
+                        for id = 1, (_G.floodIntensity / 2) do -- Reduzido para evitar spam
+                            pcall(function()
+                                upgrade:FireServer(id)
+                            end)
+                        end
+                    end
+                end)
             end
         end
+        task.wait(0.1) -- Tick rate base de 100ms
     end
 end)
 
