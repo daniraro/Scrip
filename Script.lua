@@ -116,6 +116,17 @@ pcall(function()
     gui.Parent = game:GetService("CoreGui")
 end)
 
+-- Safety stubs: alguns blocos duplicados no arquivo referenciam `saveBtn` globalmente.
+-- Criamos um stub mínimo para evitar erros de runtime; os handlers reais são criados quando o prompt é instanciado.
+if not saveBtn then
+    saveBtn = {}
+    saveBtn.MouseButton1Click = {}
+    function saveBtn.MouseButton1Click:Connect(fn) -- accept the callback but don't call it
+        -- noop: real saveBtn is created in the prompt and will overwrite this
+        return
+    end
+end
+
 if gui.Parent == nil then
     gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end
@@ -156,13 +167,12 @@ title.Size = UDim2.new(1, 0, 0, 25)
 title.Position = UDim2.new(0, 0, 0, 0)
 title.BackgroundTransparency = 1
 title.TextColor3 = Color3.fromRGB(235, 235, 240)
-title.Font = Enum.Font.GothamBold or Enum.Font.SourceSansBold
+title.Font = Enum.Font.SourceSansBold
 title.TextSize = 16
 title.Text = "CODEX ULTRA"
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextYAlignment = Enum.TextYAlignment.Center
-title.Padding = nil
-title.Parent = frame
+    title.Parent = frame
 
 local titleIcon = Instance.new("TextLabel")
 titleIcon.Size = UDim2.new(0, 28, 0, 25)
@@ -181,7 +191,7 @@ toggleBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
 toggleBtn.Text = "ATIVADO"
 toggleBtn.BackgroundColor3 = Color3.fromRGB(12, 160, 120)
 toggleBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
-toggleBtn.Font = Enum.Font.GothamSemibold or Enum.Font.SourceSansBold
+toggleBtn.Font = Enum.Font.SourceSansBold
 toggleBtn.TextSize = 14
 toggleBtn.AutoButtonColor = true
 toggleBtn.Parent = frame
@@ -201,7 +211,7 @@ statusLabel.Size = UDim2.new(0.9, 0, 0, 20)
 statusLabel.Position = UDim2.new(0.05, 0, 0.6, 0)
 statusLabel.BackgroundTransparency = 1
 statusLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
-statusLabel.Font = Enum.Font.Gotham
+statusLabel.Font = Enum.Font.SourceSans
 statusLabel.TextSize = 12
 statusLabel.Text = "Status: Executando"
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -213,7 +223,7 @@ fpsLabel.Size = UDim2.new(0.9, 0, 0, 20)
 fpsLabel.Position = UDim2.new(0.05, 0, 0.7, 0)
 fpsLabel.BackgroundTransparency = 1
 fpsLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
-fpsLabel.Font = Enum.Font.Gotham
+fpsLabel.Font = Enum.Font.SourceSans
 fpsLabel.TextSize = 12
 fpsLabel.Text = "FPS: --"
 fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -226,7 +236,7 @@ webhookBtn.Position = UDim2.new(0.05, 0, 0.85, 0)
 webhookBtn.Text = "WEBHOOK: ON"
 webhookBtn.BackgroundColor3 = Color3.fromRGB(20, 120, 170)
 webhookBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
-webhookBtn.Font = Enum.Font.Gotham
+webhookBtn.Font = Enum.Font.SourceSans
 webhookBtn.TextSize = 12
 webhookBtn.AutoButtonColor = true
 webhookBtn.Parent = frame
@@ -242,7 +252,7 @@ urlBtn.Position = UDim2.new(0.5, 0, 0.85, 0)
 urlBtn.Text = "DEFINIR URL"
 urlBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
 urlBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
-urlBtn.Font = Enum.Font.Gotham
+urlBtn.Font = Enum.Font.SourceSans
 urlBtn.TextSize = 12
 urlBtn.AutoButtonColor = true
 urlBtn.Parent = frame
