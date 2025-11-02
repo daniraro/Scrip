@@ -125,43 +125,86 @@ local frame = Instance.new("Frame")
 frame.Name = "MainFrame"
 frame.Size = UDim2.new(0, 200, 0, 150) -- Tamanho aumentado para acomodar controles webhook
 frame.Position = UDim2.new(0.05, 0, 0.05, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+frame.BackgroundColor3 = Color3.fromRGB(22, 24, 34)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 frame.Parent = gui
 
+-- Visual improvements: rounded corners, subtle stroke and gradient
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 8)
+frameCorner.Parent = frame
+
+local frameStroke = Instance.new("UIStroke")
+frameStroke.Color = Color3.fromRGB(60, 60, 80)
+frameStroke.Transparency = 0.7
+frameStroke.Thickness = 1
+frameStroke.Parent = frame
+
+local frameGradient = Instance.new("UIGradient")
+frameGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(28,30,42)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20,22,32))
+}
+frameGradient.Rotation = 90
+frameGradient.Parent = frame
+
 -- Título
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 25)
 title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 14
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(235, 235, 240)
+title.Font = Enum.Font.GothamBold or Enum.Font.SourceSansBold
+title.TextSize = 16
 title.Text = "CODEX ULTRA"
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextYAlignment = Enum.TextYAlignment.Center
+title.Padding = nil
 title.Parent = frame
+
+local titleIcon = Instance.new("TextLabel")
+titleIcon.Size = UDim2.new(0, 28, 0, 25)
+titleIcon.Position = UDim2.new(0.03, 0, 0, 0)
+titleIcon.BackgroundTransparency = 1
+titleIcon.Text = "⚡"
+titleIcon.Font = Enum.Font.SourceSansBold
+titleIcon.TextSize = 16
+titleIcon.TextColor3 = Color3.fromRGB(120, 200, 255)
+titleIcon.Parent = frame
 
 -- Botão de toggle principal
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0.9, 0, 0, 30)
 toggleBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
 toggleBtn.Text = "ATIVADO"
-toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.Font = Enum.Font.SourceSansBold
-toggleBtn.TextSize = 16
+toggleBtn.BackgroundColor3 = Color3.fromRGB(12, 160, 120)
+toggleBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
+toggleBtn.Font = Enum.Font.GothamSemibold or Enum.Font.SourceSansBold
+toggleBtn.TextSize = 14
+toggleBtn.AutoButtonColor = true
 toggleBtn.Parent = frame
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 6)
+toggleCorner.Parent = toggleBtn
+
+local toggleStroke = Instance.new("UIStroke")
+toggleStroke.Color = Color3.fromRGB(50, 50, 70)
+toggleStroke.Transparency = 0.6
+toggleStroke.Parent = toggleBtn
 
 -- Indicador de status
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(0.9, 0, 0, 20)
 statusLabel.Position = UDim2.new(0.05, 0, 0.6, 0)
 statusLabel.BackgroundTransparency = 1
-statusLabel.TextColor3 = Color3.new(1, 1, 1)
-statusLabel.Font = Enum.Font.SourceSans
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
+statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextSize = 12
 statusLabel.Text = "Status: Executando"
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = frame
 
 -- Indicador de FPS
@@ -169,10 +212,11 @@ local fpsLabel = Instance.new("TextLabel")
 fpsLabel.Size = UDim2.new(0.9, 0, 0, 20)
 fpsLabel.Position = UDim2.new(0.05, 0, 0.7, 0)
 fpsLabel.BackgroundTransparency = 1
-fpsLabel.TextColor3 = Color3.new(1, 1, 1)
-fpsLabel.Font = Enum.Font.SourceSans
+fpsLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+fpsLabel.Font = Enum.Font.Gotham
 fpsLabel.TextSize = 12
 fpsLabel.Text = "FPS: --"
+fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
 fpsLabel.Parent = frame
 
 -- Webhook toggle button
@@ -180,22 +224,32 @@ local webhookBtn = Instance.new("TextButton")
 webhookBtn.Size = UDim2.new(0.45, 0, 0, 20)
 webhookBtn.Position = UDim2.new(0.05, 0, 0.85, 0)
 webhookBtn.Text = "WEBHOOK: ON"
-webhookBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 180)
-webhookBtn.TextColor3 = Color3.new(1, 1, 1)
-webhookBtn.Font = Enum.Font.SourceSans
+webhookBtn.BackgroundColor3 = Color3.fromRGB(20, 120, 170)
+webhookBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
+webhookBtn.Font = Enum.Font.Gotham
 webhookBtn.TextSize = 12
+webhookBtn.AutoButtonColor = true
 webhookBtn.Parent = frame
+
+local webhookCorner = Instance.new("UICorner")
+webhookCorner.CornerRadius = UDim.new(0, 6)
+webhookCorner.Parent = webhookBtn
 
 -- Webhook URL input button
 local urlBtn = Instance.new("TextButton")
 urlBtn.Size = UDim2.new(0.45, 0, 0, 20)
 urlBtn.Position = UDim2.new(0.5, 0, 0.85, 0)
 urlBtn.Text = "DEFINIR URL"
-urlBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
-urlBtn.TextColor3 = Color3.new(1, 1, 1)
-urlBtn.Font = Enum.Font.SourceSans
+urlBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+urlBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
+urlBtn.Font = Enum.Font.Gotham
 urlBtn.TextSize = 12
+urlBtn.AutoButtonColor = true
 urlBtn.Parent = frame
+
+local urlCorner = Instance.new("UICorner")
+urlCorner.CornerRadius = UDim.new(0, 6)
+urlCorner.Parent = urlBtn
 
 webhookBtn.MouseButton1Click:Connect(function()
     _G.webhookEnabled = not _G.webhookEnabled
@@ -544,59 +598,85 @@ end)
 
 -- Função para enviar mensagens para o Webhook (versão corrigida)
 local function sendWebhook(title, description, color)
-    if not _G.webhookEnabled then return end
-    if not _G.webhookUrl or _G.webhookUrl == "" then
-        statusLabel.Text = "Configure o Webhook!"
-        return
+    -- Não enviar se desativado
+    if not _G.webhookEnabled then return false end
+
+    -- Validar URL
+    if not _G.webhookUrl or _G.webhookUrl == "" or _G.webhookUrl == "COLOQUE_URL_DO_WEBHOOK_AQUI" then
+        if statusLabel then statusLabel.Text = "Configure o Webhook!" end
+        return false
     end
 
-    local data = {
-        ["content"] = "",
-        ["embeds"] = {{
-            ["title"] = title,
-            ["description"] = description,
-            ["color"] = color,
-            ["footer"] = {
-                ["text"] = "Codex Ultra Script v2.1"
-            },
-            ["timestamp"] = DateTime.now():ToIsoDate()
-        }}
+    local embed = {
+        title = title,
+        description = description,
+        color = color,
+        footer = { text = "Codex Ultra Script v2.1" },
+        timestamp = DateTime.now():ToIsoDate()
     }
-    
-    local success, response = pcall(function()
-        return HttpService:RequestAsync({
-            Url = _G.webhookUrl,
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
-            Body = HttpService:JSONEncode(data)
-        })
+
+    local payload = { content = "", embeds = { embed } }
+    local body = HttpService:JSONEncode(payload)
+
+    local ok, result = pcall(function()
+        -- Prefer RequestAsync when disponível, fallback em PostAsync
+        if HttpService.RequestAsync then
+            return HttpService:RequestAsync({
+                Url = _G.webhookUrl,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = body
+            })
+        else
+            -- PostAsync retorna string/body; simular uma resposta
+            local resBody = HttpService:PostAsync(_G.webhookUrl, body, Enum.HttpContentType.ApplicationJson)
+            return { StatusCode = 200, Body = resBody }
+        end
     end)
-    
-    if not success or (response and response.StatusCode ~= 204) then
-        warn("Erro no webhook:", response and response.StatusCode or "Falha na requisição")
-        statusLabel.Text = "Erro no Webhook!"
+
+    if not ok then
+        warn("Erro ao enviar webhook:", result)
+        if statusLabel then statusLabel.Text = "Erro no Webhook!" end
         task.wait(1)
-        statusLabel.Text = "Status: Executando"
+        if statusLabel then statusLabel.Text = "Status: Executando" end
+        return false
+    end
+
+    local statusCode = (type(result) == "table" and result.StatusCode) or 200
+    if statusCode == 204 or statusCode == 200 then
+        if statusLabel then statusLabel.Text = "Webhook enviado" end
+        task.wait(1)
+        if statusLabel then statusLabel.Text = "Status: Executando" end
+        return true
+    else
+        warn("Webhook responded with status:", statusCode)
+        if statusLabel then statusLabel.Text = "Erro no Webhook!" end
+        task.wait(1)
+        if statusLabel then statusLabel.Text = "Status: Executando" end
+        return false
     end
 end
 
+-- Heartbeat: envia periodicamente um resumo simples quando o webhook estiver ativo
+spawn(function()
+    while true do
+        local interval = tonumber(_G.webhookInterval) or 30
+        wait(interval)
+        if _G.webhookEnabled and _G.webhookUrl and type(_G.webhookUrl) == "string" and _G.webhookUrl:match("^https://discord.com/api/webhooks/") then
+            local ok = pcall(function()
+                sendWebhook("📡 Codex Status",
+                    string.format("Script rodando. Jogador: %s\nPlaceId: %s", Players.LocalPlayer.Name or "-", tostring(game.PlaceId)),
+                    3066993)
+            end)
+            -- não bloquear se falhar
+        end
+    end
+end)
+
 -- Função para testar o webhook
 local function testWebhook()
-    sendWebhook(
-        "🔵 Conexão Estabelecida",
-        string.format([[
-📊 **Teste de Webhook**
-🎮 **Jogo:** %s
-👤 **Jogador:** %s
-⚡ **Status:** Conectado
-
-*Este é um teste de conexão do webhook.*]], 
-        game.PlaceId,
-        Players.LocalPlayer.Name),
-        3447003
-    )
+    local description = string.format("📊 Teste de Webhook\n🎮 Jogo: %s\n👤 Jogador: %s\n⚡ Status: Conectado\n\nEste é um teste de conexão do webhook.", tostring(game.PlaceId), tostring(Players.LocalPlayer.Name))
+    sendWebhook("🔵 Conexão Estabelecida", description, 3447003)
 end
 
 -- Modificar o evento de salvar URL do webhook
