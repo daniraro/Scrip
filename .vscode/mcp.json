@@ -2,11 +2,10 @@
   "servers": {
     "perplexity": {
       "type": "stdio",
-      
-      "command": "node",
-
+      "command": "python",
       "args": [
-        "C:\\Users\\Win10\\perplexity-mcp\\server.js"
+        "-m",
+        "perplexity_mcp.server"
       ],
       "env": {
         "PERPLEXITY_API_KEY": "${input:perplexity-key}",
