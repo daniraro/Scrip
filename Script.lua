@@ -1,24 +1,17 @@
 -- ✅ SCRIPT PARA CODEX
--- 🟣 VERSÃO ULTRA OTIMIZADA V2.2 (PERFORMANCE ENHANCED)
+-- 🟣 VERSÃO ULTRA V2.4 (GUI REDESENHADA + SEMPRE ATIVO)
 
--- Configuração de delays padrão (ajustáveis) - valores otimizados 2024
-if _G.autoClickDelay == nil then _G.autoClickDelay = 0.25 end     -- 250ms entre clicks (reduz carga)
-if _G.upgradeDelay == nil then _G.upgradeDelay = 2.0 end          -- 2000ms entre upgrades (evita spam)
-if _G.dungeonDelay == nil then _G.dungeonDelay = 0.5 end          -- 500ms entre ações dungeon
-if _G.uiUpdateDelay == nil then _G.uiUpdateDelay = 1.0 end        -- 1000ms entre updates de UI
-if _G.webhookInterval == nil then _G.webhookInterval = 120 end     -- 120s entre webhooks
-if _G.floodIntensity == nil then _G.floodIntensity = 3 end        -- Reduzido para 3 eventos por ciclo
-if _G.floodDelay == nil then _G.floodDelay = 0.25 end             -- 250ms entre floods
+-- Script inicia ATIVADO por padrão
+if _G.scriptEnabled == nil then _G.scriptEnabled = true end
 
--- Configurações locais de throttling
-local throttleConfig = {
-    clickTickRate = 0.05,    -- Taxa base de verificação (50ms)
-    upgradeTickRate = 0.1,   -- Taxa base de upgrades (100ms)
-    dungeonTickRate = 0.25,  -- Taxa base de dungeon (250ms)
-    lastClickTime = 0,       -- Último click processado
-    lastUpgradeTime = 0,     -- Último upgrade processado
-    lastDungeonTime = 0      -- Última ação dungeon
-}
+-- Configuração de delays otimizados
+if _G.autoClickDelay == nil then _G.autoClickDelay = 0.05 end
+if _G.upgradeDelay == nil then _G.upgradeDelay = 0.5 end
+if _G.dungeonDelay == nil then _G.dungeonDelay = 0.1 end
+if _G.uiUpdateDelay == nil then _G.uiUpdateDelay = 0.5 end
+if _G.webhookInterval == nil then _G.webhookInterval = 120 end
+if _G.floodIntensity == nil then _G.floodIntensity = 10 end
+if _G.floodDelay == nil then _G.floodDelay = 0.05 end
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -31,7 +24,6 @@ local gui = Instance.new("ScreenGui")
 gui.Name = "CodexUltraGui"
 gui.ResetOnSpawn = false
 
--- Tentar parent seguro
 pcall(function()
     if syn then syn.protect_gui(gui) end
     gui.Parent = game:GetService("CoreGui")
@@ -41,17 +33,216 @@ if gui.Parent == nil then
     gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 end
 
--- Tracking de performance e UI
-local lastUIUpdate = 0
-local lastFPSUpdate = 0
-local startTime = tick()
+if not scriptStartTime then scriptStartTime = tick() end
 
--- Enhanced sendWebhook: tenta múltiplos backends HTTP (executor-specific) antes de enfileirar
+-- Frame principal com cor ROXA TRANSLÚCIDA
+local frame = Instance.new("Frame")
+frame.Name = "MainFrame"
+frame.Size = UDim2.new(0, 280, 0, 400)  -- Maior e mais organizado
+frame.Position = UDim2.new(0.5, -140, 0.5, -200)  -- Centralizado
+frame.BackgroundColor3 = Color3.fromRGB(75, 40, 120)  -- Roxo
+frame.BackgroundTransparency = 0.25  -- Translúcido
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+
+-- Cantos arredondados no frame principal
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 16)  -- Bem arredondado
+frameCorner.Parent = frame
+
+-- Borda suave
+local frameStroke = Instance.new("UIStroke")
+frameStroke.Color = Color3.fromRGB(130, 80, 180)  -- Roxo claro
+frameStroke.Transparency = 0.3
+frameStroke.Thickness = 2
+frameStroke.Parent = frame
+
+-- Gradiente roxo
+local frameGradient = Instance.new("UIGradient")
+frameGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(95, 60, 140)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(55, 30, 100))
+}
+frameGradient.Rotation = 45
+frameGradient.Parent = frame
+
+-- Container do título
+local titleContainer = Instance.new("Frame")
+titleContainer.Name = "TitleContainer"
+titleContainer.Size = UDim2.new(1, 0, 0, 50)
+titleContainer.Position = UDim2.new(0, 0, 0, 0)
+titleContainer.BackgroundColor3 = Color3.fromRGB(50, 25, 90)
+titleContainer.BackgroundTransparency = 0.3
+titleContainer.BorderSizePixel = 0
+titleContainer.Parent = frame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 16)
+titleCorner.Parent = titleContainer
+
+-- Título
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -60, 1, 0)
+title.Position = UDim2.new(0, 50, 0, 0)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 24
+title.Text = "CODEX ULTRA"
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.TextYAlignment = Enum.TextYAlignment.Center
+title.Parent = titleContainer
+
+-- Ícone do título
+local titleIcon = Instance.new("TextLabel")
+titleIcon.Size = UDim2.new(0, 40, 0, 40)
+titleIcon.Position = UDim2.new(0, 5, 0.5, -20)
+titleIcon.BackgroundTransparency = 1
+titleIcon.Text = "⚡"
+titleIcon.Font = Enum.Font.GothamBold
+titleIcon.TextSize = 28
+titleIcon.TextColor3 = Color3.fromRGB(200, 150, 255)
+titleIcon.Parent = titleContainer
+
+-- Container de conteúdo com scroll
+local contentFrame = Instance.new("ScrollingFrame")
+contentFrame.Name = "ContentFrame"
+contentFrame.Size = UDim2.new(1, -20, 1, -70)
+contentFrame.Position = UDim2.new(0, 10, 0, 60)
+contentFrame.BackgroundTransparency = 1
+contentFrame.BorderSizePixel = 0
+contentFrame.ScrollBarThickness = 6
+contentFrame.ScrollBarImageColor3 = Color3.fromRGB(150, 100, 200)
+contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)  -- Será ajustado automaticamente
+contentFrame.Parent = frame
+
+-- UIListLayout para organizar os elementos automaticamente
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 10)  -- Espaçamento entre botões
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = contentFrame
+
+-- Atualizar tamanho do canvas automaticamente
+listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    contentFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 10)
+end)
+
+-- Função para criar botões padronizados e ARREDONDADOS
+local function createButton(text, layoutOrder, color, callback)
+    local btn = Instance.new("TextButton")
+    btn.Name = text:gsub(" ", "")
+    btn.Size = UDim2.new(1, -20, 0, 45)  -- Maior e mais clicável
+    btn.Text = text
+    btn.BackgroundColor3 = color
+    btn.BackgroundTransparency = 0.2
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.AutoButtonColor = false
+    btn.LayoutOrder = layoutOrder
+    btn.Parent = contentFrame
+    
+    -- Cantos arredondados
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = btn
+    
+    -- Borda
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.new(1, 1, 1)
+    stroke.Transparency = 0.7
+    stroke.Thickness = 1.5
+    stroke.Parent = btn
+    
+    -- Efeito hover
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundTransparency = 0
+        stroke.Transparency = 0.4
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundTransparency = 0.2
+        stroke.Transparency = 0.7
+    end)
+    
+    if callback then
+        btn.MouseButton1Click:Connect(callback)
+    end
+    
+    return btn
+end
+
+-- Função para criar labels de informação
+local function createInfoLabel(text, layoutOrder)
+    local label = Instance.new("TextLabel")
+    label.Name = text:gsub(" ", ""):gsub(":", "")
+    label.Size = UDim2.new(1, -20, 0, 35)
+    label.Text = text
+    label.BackgroundColor3 = Color3.fromRGB(60, 30, 100)
+    label.BackgroundTransparency = 0.3
+    label.TextColor3 = Color3.fromRGB(230, 230, 240)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.LayoutOrder = layoutOrder
+    label.Parent = contentFrame
+    
+    -- Cantos arredondados
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = label
+    
+    -- Padding interno
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 15)
+    padding.Parent = label
+    
+    return label
+end
+
+-- Criar elementos da UI de forma ORGANIZADA
+local statusLabel = createInfoLabel("Status: ✅ ATIVADO", 1)
+local fpsLabel = createInfoLabel("FPS: --", 2)
+
+-- Botão principal de DESATIVAR/ATIVAR (inicia ativado)
+local toggleBtn = createButton("🔴 DESATIVAR SCRIPT", 3, Color3.fromRGB(0, 150, 100), function()
+    _G.scriptEnabled = not _G.scriptEnabled
+    if _G.scriptEnabled then
+        toggleBtn.Text = "🔴 DESATIVAR SCRIPT"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+        statusLabel.Text = "Status: ✅ ATIVADO"
+    else
+        toggleBtn.Text = "✅ ATIVAR SCRIPT"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        statusLabel.Text = "Status: ⛔ DESATIVADO"
+    end
+end)
+
+-- Botão Webhook Toggle
+local webhookBtn = createButton("WEBHOOK: ON", 4, Color3.fromRGB(20, 100, 180), function()
+    _G.webhookEnabled = not _G.webhookEnabled
+    webhookBtn.Text = "WEBHOOK: " .. (_G.webhookEnabled and "ON" or "OFF")
+    webhookBtn.BackgroundColor3 = _G.webhookEnabled and Color3.fromRGB(20, 100, 180) or Color3.fromRGB(100, 100, 100)
+end)
+
+-- Botão Configurar Webhook
+local urlBtn = createButton("⚙️ CONFIGURAR WEBHOOK", 5, Color3.fromRGB(80, 50, 130), nil)
+
+-- Botão Enviar Informações
+local sendInfoBtn = createButton("📨 ENVIAR INFORMAÇÕES", 6, Color3.fromRGB(100, 60, 140), nil)
+
+-- Botão Modo Compacto
+local compactBtn = createButton("Modo Compacto: OFF", 7, Color3.fromRGB(70, 40, 110), nil)
+
+-- Enhanced sendWebhook function
 local function sendWebhook(title, description, color)
     if not _G.webhookEnabled then return false end
 
     if not _G.webhookUrl or _G.webhookUrl == "" or _G.webhookUrl == "COLOQUE_URL_DO_WEBHOOK_AQUI" then
-        if statusLabel then statusLabel.Text = "Configure o Webhook!" end
+        statusLabel.Text = "Status: ⚠️ Configure Webhook!"
         return false
     end
 
@@ -59,7 +250,7 @@ local function sendWebhook(title, description, color)
         title = title,
         description = description,
         color = color,
-        footer = { text = "Codex Ultra Script v2.1" },
+        footer = { text = "Codex Ultra Script v2.4" },
         timestamp = DateTime.now():ToIsoDate()
     }
 
@@ -86,35 +277,30 @@ local function sendWebhook(title, description, color)
 
     local response = nil
 
-    -- syn.request (Synapse)
     if not response and syn and syn.request then
         response = tryRequestCall(function()
             return syn.request({ Url = _G.webhookUrl, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = body })
         end)
     end
 
-    -- http.request (some executors)
     if not response and http and http.request then
         response = tryRequestCall(function()
             return http.request({ Url = _G.webhookUrl, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = body })
         end)
     end
 
-    -- http_request (fluxus / old)
     if not response and http_request then
         response = tryRequestCall(function()
             return http_request({ Url = _G.webhookUrl, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = body })
         end)
     end
 
-    -- request (KRNL etc)
     if not response and request then
         response = tryRequestCall(function()
             return request({ Url = _G.webhookUrl, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = body })
         end)
     end
 
-    -- Roblox HttpService last
     if not response then
         local ok, res = pcall(function()
             if HttpService.RequestAsync then
@@ -128,334 +314,122 @@ local function sendWebhook(title, description, color)
     end
 
     if not response or (response.StatusCode ~= 204 and response.StatusCode ~= 200) then
-        -- fallback: enfileirar usando writefile (executor) se disponível
-        pcall(function()
-            if writefile and readfile and isfile then
-                local queueFile = "CodexWebhookQueue.json"
-                local existing = "[]"
-                if isfile(queueFile) then existing = readfile(queueFile) end
-                local okDecode, list = pcall(function() return HttpService:JSONDecode(existing) end)
-                if not okDecode or type(list) ~= "table" then list = {} end
-                table.insert(list, { title = title, description = description, color = color, ts = DateTime.now():ToIsoDate(), err = (response and response.StatusCode) or "no-method" })
-                writefile(queueFile, HttpService:JSONEncode(list))
-                if statusLabel then statusLabel.Text = "Webhook enfileirado" end
-                task.wait(1)
-                if statusLabel then statusLabel.Text = "Status: Executando" end
-            else
-                warn("Falha ao enviar webhook e sem writefile disponível para enfileirar.")
-                if statusLabel then statusLabel.Text = "Erro no Webhook!" end
-                task.wait(1)
-                if statusLabel then statusLabel.Text = "Status: Executando" end
-            end
-        end)
+        statusLabel.Text = "Status: ❌ Erro Webhook"
+        task.wait(1)
+        statusLabel.Text = "Status: ✅ ATIVADO"
         return false
     end
 
-    if statusLabel then statusLabel.Text = "Webhook enviado" end
+    statusLabel.Text = "Status: 📤 Webhook enviado"
     task.wait(1)
-    if statusLabel then statusLabel.Text = "Status: Executando" end
+    statusLabel.Text = "Status: ✅ ATIVADO"
     return true
 end
 
--- Janela principal com design melhorado
--- Criar ScreenGui antes do frame
-local gui = Instance.new("ScreenGui")
-gui.Name = "CodexUltraGui"
-
-pcall(function()
-    if syn then syn.protect_gui(gui) end
-    gui.Parent = game:GetService("CoreGui")
-end)
-
-if gui.Parent == nil then
-    gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-end
-
-local frame = Instance.new("Frame")
-frame.Name = "MainFrame"
-frame.Size = UDim2.new(0, 200, 0, 150)
-frame.Position = UDim2.new(0.05, 0, 0.05, 0)
-frame.BackgroundColor3 = Color3.fromRGB(22, 24, 34)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Parent = gui
-
--- Visual improvements: rounded corners, subtle stroke and gradient
-local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 8)
-frameCorner.Parent = frame
-
-local frameStroke = Instance.new("UIStroke")
-frameStroke.Color = Color3.fromRGB(60, 60, 80)
-frameStroke.Transparency = 0.7
-frameStroke.Thickness = 1
-frameStroke.Parent = frame
-
-local frameGradient = Instance.new("UIGradient")
-frameGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(28,30,42)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(20,22,32))
-}
-frameGradient.Rotation = 90
-frameGradient.Parent = frame
-
--- Título
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 25)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundTransparency = 1
-title.TextColor3 = Color3.fromRGB(235, 235, 240)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 16
-title.Text = "CODEX ULTRA"
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.TextYAlignment = Enum.TextYAlignment.Center
-    title.Parent = frame
-
-local titleIcon = Instance.new("TextLabel")
-titleIcon.Size = UDim2.new(0, 28, 0, 25)
-titleIcon.Position = UDim2.new(0.03, 0, 0, 0)
-titleIcon.BackgroundTransparency = 1
-titleIcon.Text = "⚡"
-titleIcon.Font = Enum.Font.SourceSansBold
-titleIcon.TextSize = 16
-titleIcon.TextColor3 = Color3.fromRGB(120, 200, 255)
-titleIcon.Parent = frame
-
--- Botão de toggle principal
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0.9, 0, 0, 30)
-toggleBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
-toggleBtn.Text = "ATIVADO"
-toggleBtn.BackgroundColor3 = Color3.fromRGB(12, 160, 120)
-toggleBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
-toggleBtn.Font = Enum.Font.SourceSansBold
-toggleBtn.TextSize = 14
-toggleBtn.AutoButtonColor = true
-toggleBtn.Parent = frame
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 6)
-toggleCorner.Parent = toggleBtn
-
-local toggleStroke = Instance.new("UIStroke")
-toggleStroke.Color = Color3.fromRGB(50, 50, 70)
-toggleStroke.Transparency = 0.6
-toggleStroke.Parent = toggleBtn
-
--- Indicador de status
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(0.9, 0, 0, 20)
-statusLabel.Position = UDim2.new(0.05, 0, 0.6, 0)
-statusLabel.BackgroundTransparency = 1
-statusLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
-statusLabel.Font = Enum.Font.SourceSans
-statusLabel.TextSize = 12
-statusLabel.Text = "Status: Executando"
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.Parent = frame
-
--- Indicador de FPS
-local fpsLabel = Instance.new("TextLabel")
-fpsLabel.Size = UDim2.new(0.9, 0, 0, 20)
-fpsLabel.Position = UDim2.new(0.05, 0, 0.7, 0)
-fpsLabel.BackgroundTransparency = 1
-fpsLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
-fpsLabel.Font = Enum.Font.SourceSans
-fpsLabel.TextSize = 12
-fpsLabel.Text = "FPS: --"
-fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-fpsLabel.Parent = frame
-
--- Webhook toggle button
-local webhookBtn = Instance.new("TextButton")
-webhookBtn.Size = UDim2.new(0.45, 0, 0, 20)
-webhookBtn.Position = UDim2.new(0.05, 0, 0.85, 0)
-webhookBtn.Text = "WEBHOOK: ON"
-webhookBtn.BackgroundColor3 = Color3.fromRGB(20, 120, 170)
-webhookBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
-webhookBtn.Font = Enum.Font.SourceSans
-webhookBtn.TextSize = 12
-webhookBtn.AutoButtonColor = true
-webhookBtn.Parent = frame
-
-local webhookCorner = Instance.new("UICorner")
-webhookCorner.CornerRadius = UDim.new(0, 6)
-webhookCorner.Parent = webhookBtn
-
--- Webhook URL input button
-local urlBtn = Instance.new("TextButton")
-urlBtn.Size = UDim2.new(0.45, 0, 0, 20)
-urlBtn.Position = UDim2.new(0.5, 0, 0.85, 0)
-urlBtn.Text = "DEFINIR URL"
-urlBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
-urlBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
-urlBtn.Font = Enum.Font.SourceSans
-urlBtn.TextSize = 12
-urlBtn.AutoButtonColor = true
-urlBtn.Parent = frame
-
-local urlCorner = Instance.new("UICorner")
-urlCorner.CornerRadius = UDim.new(0, 6)
-urlCorner.Parent = urlBtn
-
--- Registrar início do script para uptime (se ainda não houver)
-if not scriptStartTime then scriptStartTime = tick() end
-
--- Botão para enviar manualmente informações do jogo via webhook
-local sendInfoBtn = Instance.new("TextButton")
-sendInfoBtn.Size = UDim2.new(0.45, 0, 0, 20)
-sendInfoBtn.Position = UDim2.new(0.5, 0, 0.78, 0)
-sendInfoBtn.Text = "ENVIAR INFORMAÇÕES"
-sendInfoBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 110)
-sendInfoBtn.TextColor3 = Color3.fromRGB(245, 245, 250)
-sendInfoBtn.Font = Enum.Font.SourceSansBold
-sendInfoBtn.TextSize = 12
-sendInfoBtn.AutoButtonColor = true
-sendInfoBtn.Parent = frame
-
-local sendCorner = Instance.new("UICorner")
-sendCorner.CornerRadius = UDim.new(0, 6)
-sendCorner.Parent = sendInfoBtn
-
-sendInfoBtn.MouseButton1Click:Connect(function()
-    if not _G.webhookEnabled then
-        if statusLabel then statusLabel.Text = "Webhook desativado" end
-        return
-    end
-    if not _G.webhookUrl or _G.webhookUrl == "" then
-        if statusLabel then statusLabel.Text = "Configure o Webhook!" end
-        return
-    end
-
-    local uptime = "0"
-    pcall(function() uptime = tostring(math.floor(tick() - (scriptStartTime or tick()))) end)
-    local description = string.format("📢 **Relatório do Jogo**\n👤 Jogador: %s\n🏷️ PlaceId: %s\n⏱ Uptime(s): %s\n🖥 FPS: %s\nStatus: %s",
-        Players.LocalPlayer and Players.LocalPlayer.Name or "-",
-        tostring(game.PlaceId),
-        uptime,
-        tostring(fps or 0),
-        _G.scriptEnabled and "Executando" or "Pausado")
-
-    sendWebhook("📨 Relatório Manual", description, 16751616)
-end)
-
--- Botão para alternar modo compacto (esconder informações extras para UI mais leve)
-local compactBtn = Instance.new("TextButton")
-compactBtn.Size = UDim2.new(0.9, 0, 0, 18)
-compactBtn.Position = UDim2.new(0.05, 0, 0.92, 0)
-compactBtn.Text = "Modo Compacto: OFF"
-compactBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-compactBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
-compactBtn.Font = Enum.Font.SourceSans
-compactBtn.TextSize = 11
-compactBtn.AutoButtonColor = true
-compactBtn.Parent = frame
-
-local compactCorner = Instance.new("UICorner")
-compactCorner.CornerRadius = UDim.new(0, 6)
-compactCorner.Parent = compactBtn
-
-local compactMode = false
-local function setCompactMode(on)
-    compactMode = on
-    compactBtn.Text = "Modo Compacto: " .. (on and "ON" or "OFF")
-    if fpsLabel then fpsLabel.Visible = not on end
-    if statusLabel then statusLabel.Visible = not on end
-    if sendInfoBtn then sendInfoBtn.Visible = not on end
-    -- mantemos botões essenciais visíveis (toggleBtn, webhookBtn, urlBtn)
-end
-
-compactBtn.MouseButton1Click:Connect(function()
-    setCompactMode(not compactMode)
-end)
-
-webhookBtn.MouseButton1Click:Connect(function()
-    _G.webhookEnabled = not _G.webhookEnabled
-    webhookBtn.Text = "WEBHOOK: " .. (_G.webhookEnabled and "ON" or "OFF")
-    webhookBtn.BackgroundColor3 = _G.webhookEnabled and Color3.fromRGB(0, 120, 180) or Color3.fromRGB(100, 100, 100)
-end)
-
--- Prompt para configurar a URL do webhook
+-- Configurar botão de webhook URL
 urlBtn.MouseButton1Click:Connect(function()
-    -- Criar um prompt para o usuário inserir a URL
     local promptGui = Instance.new("ScreenGui")
     promptGui.Name = "WebhookPrompt"
     
     local promptFrame = Instance.new("Frame")
-    promptFrame.Size = UDim2.new(0, 300, 0, 150)
-    promptFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
-    promptFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    promptFrame.Size = UDim2.new(0, 400, 0, 200)
+    promptFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
+    promptFrame.BackgroundColor3 = Color3.fromRGB(60, 30, 110)
+    promptFrame.BackgroundTransparency = 0.1
     promptFrame.BorderSizePixel = 0
     promptFrame.Parent = promptGui
     
+    local promptCorner = Instance.new("UICorner")
+    promptCorner.CornerRadius = UDim.new(0, 16)
+    promptCorner.Parent = promptFrame
+    
+    local promptStroke = Instance.new("UIStroke")
+    promptStroke.Color = Color3.fromRGB(150, 100, 200)
+    promptStroke.Thickness = 2
+    promptStroke.Parent = promptFrame
+    
     local promptTitle = Instance.new("TextLabel")
-    promptTitle.Size = UDim2.new(1, 0, 0, 30)
-    promptTitle.Position = UDim2.new(0, 0, 0, 0)
-    promptTitle.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+    promptTitle.Size = UDim2.new(1, -20, 0, 40)
+    promptTitle.Position = UDim2.new(0, 10, 0, 10)
+    promptTitle.BackgroundTransparency = 1
     promptTitle.TextColor3 = Color3.new(1, 1, 1)
-    promptTitle.Font = Enum.Font.SourceSansBold
-    promptTitle.TextSize = 16
-    promptTitle.Text = "Configurar URL do Webhook"
+    promptTitle.Font = Enum.Font.GothamBold
+    promptTitle.TextSize = 18
+    promptTitle.Text = "⚙️ Configurar Webhook"
     promptTitle.Parent = promptFrame
     
     local urlInput = Instance.new("TextBox")
-    urlInput.Size = UDim2.new(0.9, 0, 0, 30)
-    urlInput.Position = UDim2.new(0.05, 0, 0.3, 0)
-    urlInput.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+    urlInput.Size = UDim2.new(1, -40, 0, 45)
+    urlInput.Position = UDim2.new(0, 20, 0, 60)
+    urlInput.BackgroundColor3 = Color3.fromRGB(80, 50, 130)
+    urlInput.BackgroundTransparency = 0.3
     urlInput.TextColor3 = Color3.new(1, 1, 1)
-    urlInput.PlaceholderText = "Cole a URL do webhook aqui"
+    urlInput.PlaceholderText = "Cole a URL do webhook Discord aqui..."
     urlInput.Text = _G.webhookUrl ~= "COLOQUE_URL_DO_WEBHOOK_AQUI" and _G.webhookUrl or ""
-    urlInput.Font = Enum.Font.SourceSans
-    urlInput.TextSize = 14
+    urlInput.Font = Enum.Font.Gotham
+    urlInput.TextSize = 13
     urlInput.ClearTextOnFocus = false
     urlInput.Parent = promptFrame
     
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 10)
+    inputCorner.Parent = urlInput
+    
+    local inputPadding = Instance.new("UIPadding")
+    inputPadding.PaddingLeft = UDim.new(0, 10)
+    inputPadding.Parent = urlInput
+    
     local saveBtn = Instance.new("TextButton")
-    saveBtn.Size = UDim2.new(0.45, 0, 0, 30)
-    saveBtn.Position = UDim2.new(0.05, 0, 0.7, 0)
+    saveBtn.Size = UDim2.new(0.45, -10, 0, 45)
+    saveBtn.Position = UDim2.new(0.05, 0, 0, 130)
     saveBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 50)
+    saveBtn.BackgroundTransparency = 0.2
     saveBtn.TextColor3 = Color3.new(1, 1, 1)
-    saveBtn.Font = Enum.Font.SourceSansBold
+    saveBtn.Font = Enum.Font.GothamBold
     saveBtn.TextSize = 16
-    saveBtn.Text = "SALVAR"
+    saveBtn.Text = "✅ SALVAR"
     saveBtn.Parent = promptFrame
     
+    local saveCorner = Instance.new("UICorner")
+    saveCorner.CornerRadius = UDim.new(0, 10)
+    saveCorner.Parent = saveBtn
+    
     local cancelBtn = Instance.new("TextButton")
-    cancelBtn.Size = UDim2.new(0.45, 0, 0, 30)
-    cancelBtn.Position = UDim2.new(0.5, 0, 0.7, 0)
-    cancelBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+    cancelBtn.Size = UDim2.new(0.45, -10, 0, 45)
+    cancelBtn.Position = UDim2.new(0.5, 5, 0, 130)
+    cancelBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    cancelBtn.BackgroundTransparency = 0.2
     cancelBtn.TextColor3 = Color3.new(1, 1, 1)
-    cancelBtn.Font = Enum.Font.SourceSansBold
+    cancelBtn.Font = Enum.Font.GothamBold
     cancelBtn.TextSize = 16
-    cancelBtn.Text = "CANCELAR"
+    cancelBtn.Text = "❌ CANCELAR"
     cancelBtn.Parent = promptFrame
     
-    -- Função para fechar o prompt
+    local cancelCorner = Instance.new("UICorner")
+    cancelCorner.CornerRadius = UDim.new(0, 10)
+    cancelCorner.Parent = cancelBtn
+    
     local function closePrompt()
         promptGui:Destroy()
     end
     
-    -- Botão salvar
     saveBtn.MouseButton1Click:Connect(function()
         local newUrl = urlInput.Text
         if newUrl and newUrl:match("^https://discord.com/api/webhooks/") then
             _G.webhookUrl = newUrl
-            saveWebhookSettings(newUrl)
             closePrompt()
-            -- Testar webhook após salvar
-            testWebhook()
+            statusLabel.Text = "Status: ✅ Webhook configurado"
+            task.wait(1)
+            statusLabel.Text = "Status: ✅ ATIVADO"
         else
             urlInput.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            urlInput.PlaceholderText = "URL inválida! Deve ser um webhook do Discord"
+            urlInput.PlaceholderText = "❌ URL inválida!"
             task.wait(2)
-            urlInput.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
-            urlInput.PlaceholderText = "Cole a URL do webhook aqui"
+            urlInput.BackgroundColor3 = Color3.fromRGB(80, 50, 130)
+            urlInput.PlaceholderText = "Cole a URL do webhook Discord aqui..."
         end
     end)
     
-    -- Botão cancelar
     cancelBtn.MouseButton1Click:Connect(closePrompt)
     
     pcall(function()
@@ -466,6 +440,42 @@ urlBtn.MouseButton1Click:Connect(function()
     if promptGui.Parent == nil then
         promptGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
     end
+end)
+
+-- Configurar botão de enviar informações
+sendInfoBtn.MouseButton1Click:Connect(function()
+    if not _G.webhookEnabled then
+        statusLabel.Text = "Status: ⚠️ Webhook desativado"
+        task.wait(1)
+        statusLabel.Text = "Status: ✅ ATIVADO"
+        return
+    end
+    if not _G.webhookUrl or _G.webhookUrl == "" then
+        statusLabel.Text = "Status: ⚠️ Configure Webhook"
+        task.wait(1)
+        statusLabel.Text = "Status: ✅ ATIVADO"
+        return
+    end
+
+    local uptime = "0"
+    pcall(function() uptime = tostring(math.floor(tick() - (scriptStartTime or tick()))) end)
+    local description = string.format("📢 **Relatório do Jogo**\n👤 Jogador: %s\n🏷️ PlaceId: %s\n⏱ Uptime(s): %s\n🖥 FPS: %s\nStatus: %s",
+        Players.LocalPlayer and Players.LocalPlayer.Name or "-",
+        tostring(game.PlaceId),
+        uptime,
+        tostring(fps or 0),
+        _G.scriptEnabled and "✅ Ativado" or "⛔ Desativado")
+
+    sendWebhook("📨 Relatório Manual", description, 16751616)
+end)
+
+-- Configurar modo compacto
+local compactMode = false
+compactBtn.MouseButton1Click:Connect(function()
+    compactMode = not compactMode
+    compactBtn.Text = "Modo Compacto: " .. (compactMode and "ON" or "OFF")
+    fpsLabel.Visible = not compactMode
+    statusLabel.Visible = not compactMode
 end)
 
 -- FPS Counter
@@ -483,29 +493,23 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Toggle functionality
-toggleBtn.MouseButton1Click:Connect(function()
-    _G.scriptEnabled = not _G.scriptEnabled
-    toggleBtn.Text = _G.scriptEnabled and "ATIVADO" or "DESATIVADO"
-    toggleBtn.BackgroundColor3 = _G.scriptEnabled and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
-    statusLabel.Text = "Status: " .. (_G.scriptEnabled and "Executando" or "Pausado")
-end)
+-- Pré-carregamento de eventos
+local clickEvents = {}
+local upgradeEvents = {}
+local specialEvents = {}
+local dungeonEvents = {}
 
--- Pré-carregamento de todos os eventos para melhor desempenho
 local function preloadEvents()
     local Events = game:GetService("ReplicatedStorage"):WaitForChild("Events")
     
-    -- Função auxiliar para verificar eventos
     local function verifyEvent(parent, name)
-        local event = parent:WaitForChild(name)
+        local event = parent:WaitForChild(name, 5)
         if not event then warn("❌ Falha ao carregar: " .. name) end
         return event
     end
     
-    -- Carregar DungeonAttack primeiro (crítico)
     local DungeonAttack = verifyEvent(Events, "DungeonAttack")
     
-    -- Eventos de Dungeon (com verificação)
     dungeonEvents = {
         attack = DungeonAttack,
         changeEnemy = verifyEvent(DungeonAttack, "ChangeEnemy"),
@@ -516,7 +520,6 @@ local function preloadEvents()
         }
     }
 
-    -- Eventos de clique
     clickEvents = {
         Events:WaitForChild("ClickMoney"),
         Events:FindFirstChild("ClickMoney"):FindFirstChild("AtomClicker"),
@@ -525,9 +528,7 @@ local function preloadEvents()
         Events:FindFirstChild("Prestige"):FindFirstChild("Runestone4")
     }
     
-    -- Eventos de upgrade
     upgradeEvents = {
-        -- Upgrades principais (evento, maxId, argumentos extras)
         {Events:WaitForChild("Upgrade"):WaitForChild("TranscendUpgrade"), 30},
         {Events:WaitForChild("Upgrade"):WaitForChild("TimeUpgrade"), 10},
         {Events:WaitForChild("Upgrade"):WaitForChild("ExtraUpgrade"), 35},
@@ -539,28 +540,23 @@ local function preloadEvents()
         {Events:WaitForChild("Upgrade"):WaitForChild("JewelUpgrade"), 25},
         {Events:WaitForChild("Upgrade"):WaitForChild("ExtraUpgrade3"), 40},
         {Events:WaitForChild("Upgrade"):WaitForChild("ConcreteUpgrade"), 30},
-        
-        -- Outros Upgrades
         {Events:WaitForChild("BuyRune"):WaitForChild("EquipRune"), 10},
         {Events:WaitForChild("Prestige"):WaitForChild("PrestigeUpgrade"), 30},
         {Events:WaitForChild("Prestige"):WaitForChild("ResearchUpgrade"), 80}
     }
     
-    -- Eventos especiais
     specialEvents = {
-        -- {evento, maxId, arg1, arg2}
         {Events:WaitForChild("Upgrade"):WaitForChild("RuneUpgrade"), 20, false},
         {Events:WaitForChild("Upgrade"):WaitForChild("GemUpgrade"), 15, true}
     }
     
-    print("✓ Eventos pré-carregados com sucesso!")
-    statusLabel.Text = "Status: Eventos carregados"
+    print("✓ Eventos carregados - MODO ULTRA ATIVO!")
+    statusLabel.Text = "Status: ✅ ATIVADO"
 end
 
--- Inicializar eventos
 spawn(preloadEvents)
 
--- Sistema de auto-clickers otimizado usando RenderStepped para performance máxima
+-- ⚡ SISTEMA DE AUTO-CLICKERS (SEMPRE ATIVO)
 spawn(function()
     while true do
         if _G.scriptEnabled and #clickEvents > 0 then
@@ -574,22 +570,21 @@ spawn(function()
                 end
             end
         end
-        wait(_G.floodDelay)
+        task.wait(_G.floodDelay)
     end
 end)
 
--- Sistema de upgrades paralelos (todos são executados simultaneamente)
+-- ⚡ SISTEMA DE UPGRADES (SEMPRE ATIVO)
 spawn(function()
-    while wait(0.1) do
+    while task.wait(0.03) do
         if _G.scriptEnabled and #upgradeEvents > 0 then
             for _, upgrade in pairs(upgradeEvents) do
                 local event = upgrade[1]
                 local maxId = upgrade[2]
                 
                 if event then
-                    -- Upgrades em paralelo (não espera entre eles)
                     for id = 1, maxId do
-                        spawn(function()
+                        task.spawn(function()
                             pcall(function()
                                 event:FireServer(id)
                             end)
@@ -598,7 +593,6 @@ spawn(function()
                 end
             end
             
-            -- Upgrades especiais também em paralelo
             for _, special in pairs(specialEvents) do
                 local event = special[1]
                 local maxId = special[2]
@@ -606,7 +600,7 @@ spawn(function()
                 
                 if event then
                     for id = 1, maxId do
-                        spawn(function()
+                        task.spawn(function()
                             pcall(function()
                                 event:FireServer(id, arg)
                             end)
@@ -618,68 +612,47 @@ spawn(function()
     end
 end)
 
--- Concrete Prestige otimizado
+-- ⚡ DUNGEON ATTACK (SEMPRE SPAMANDO - NÃO PARA NUNCA)
 spawn(function()
-    while wait(0.1) do
-        if _G.scriptEnabled and concreteEvent then
-            for i = 1, 5 do -- Múltiplas tentativas
-                pcall(function()
-                    concreteEvent:FireServer()
-                end)
-            end
-        end
-    end
-end)
-
--- DUNGEON ATTACK otimizado (ultra-rápido e com verificações)
-spawn(function()
-    while wait(_G.floodDelay) do
-        if not _G.scriptEnabled then continue end
-        
+    while true do  -- Loop infinito sem verificação de _G.scriptEnabled
         pcall(function()
-            -- Referência direta aos eventos
             local DungeonAttack = game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("DungeonAttack")
             local ChangeEnemy = DungeonAttack:WaitForChild("ChangeEnemy")
             
             for i = 1, _G.floodIntensity do
                 pcall(function()
-                    -- Attack principal
                     DungeonAttack:FireServer()
-                    
-                    -- ChangeEnemy com args corretos
                     local args = {[1] = 1}
                     ChangeEnemy:FireServer(unpack(args))
                 end)
             end
         end)
+        task.wait(_G.floodDelay)
     end
 end)
 
--- DUNGEON REBIRTH otimizado
+-- ⚡ DUNGEON REBIRTH (SEMPRE SPAMANDO - NÃO PARA NUNCA)
 spawn(function()
-    while wait(0.5) do
-        if _G.scriptEnabled and dungeonEvents.rebirth then
-            for i = 1, 3 do
-                pcall(function()
+    while true do  -- Loop infinito sem verificação
+        pcall(function()
+            if dungeonEvents.rebirth then
+                for i = 1, 5 do
                     dungeonEvents.rebirth:FireServer()
-                end)
+                end
             end
-        end
+        end)
+        task.wait(0.1)
     end
 end)
 
--- DUNGEON UPGRADES otimizado com throttling
-local lastDungeonUpgradeTime = 0
+-- ⚡ DUNGEON UPGRADES (SEMPRE SPAMANDO - NÃO PARA NUNCA)
 spawn(function()
-    while true do
-        if _G.scriptEnabled and #dungeonEvents.upgrades > 0 then
-            local now = tick()
-            if now - lastDungeonUpgradeTime >= (_G.dungeonDelay or 0.25) then
-                lastDungeonUpgradeTime = now
-                -- Batch dungeon upgrades em uma única thread
+    while true do  -- Loop infinito sem verificação
+        pcall(function()
+            if #dungeonEvents.upgrades > 0 then
                 task.spawn(function()
                     for _, upgrade in ipairs(dungeonEvents.upgrades) do
-                        for id = 1, (_G.floodIntensity / 2) do
+                        for id = 1, _G.floodIntensity do
                             pcall(function()
                                 upgrade:FireServer()
                             end)
@@ -687,114 +660,74 @@ spawn(function()
                     end
                 end)
             end
-        end
-        task.wait(0.1)
+        end)
+        task.wait(0.05)
     end
 end)
 
--- Keybind aprimorado
+-- ⚡ CONCRETE PRESTIGE (SEMPRE ATIVO)
+spawn(function()
+    while task.wait(0.05) do
+        if _G.scriptEnabled then
+            pcall(function()
+                local concreteEvent = game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Prestige"):WaitForChild("ConcretePrestige")
+                if concreteEvent then
+                    for i = 1, 10 do
+                        concreteEvent:FireServer()
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Keybinds
 UIS.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.N then
-        -- Toggle visibilidade
         frame.Visible = not frame.Visible
     elseif input.KeyCode == Enum.KeyCode.M then
-        -- Toggle ativação
         _G.scriptEnabled = not _G.scriptEnabled
-        toggleBtn.Text = _G.scriptEnabled and "ATIVADO" or "DESATIVADO"
-        toggleBtn.BackgroundColor3 = _G.scriptEnabled and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
-        statusLabel.Text = "Status: " .. (_G.scriptEnabled and "Executando" or "Pausado")
+        if _G.scriptEnabled then
+            toggleBtn.Text = "🔴 DESATIVAR SCRIPT"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+            statusLabel.Text = "Status: ✅ ATIVADO"
+        else
+            toggleBtn.Text = "✅ ATIVAR SCRIPT"
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+            statusLabel.Text = "Status: ⛔ DESATIVADO"
+        end
     elseif input.KeyCode == Enum.KeyCode.B then
-        -- Boost temporário
         local oldIntensity = _G.floodIntensity
         local oldDelay = _G.floodDelay
         
-        _G.floodIntensity = 100
-        _G.floodDelay = 0.0005
+        _G.floodIntensity = 20
+        _G.floodDelay = 0.016
         
-        statusLabel.Text = "Status: BOOST ATIVADO"
+        statusLabel.Text = "Status: 🚀 TURBO ATIVADO"
         
-        wait(5) -- 5 segundos de boost
+        task.wait(5)
         
         _G.floodIntensity = oldIntensity
         _G.floodDelay = oldDelay
-        statusLabel.Text = "Status: Executando"
+        statusLabel.Text = "Status: ✅ ATIVADO"
     end
 end)
 
 -- Performance monitor
 spawn(function()
     local startTime = tick()
-    while wait(10) do
+    while task.wait(5) do
         local runtime = math.floor(tick() - startTime)
         local minutes = math.floor(runtime / 60)
         local seconds = runtime % 60
         
-        -- Atualizar status
-        if _G.scriptEnabled then
-            statusLabel.Text = string.format("Tempo: %02d:%02d", minutes, seconds)
+        if _G.scriptEnabled and not compactMode then
+            statusLabel.Text = string.format("Status: ✅ ATIVO (%02d:%02d)", minutes, seconds)
         end
     end
 end)
 
--- Função para enviar mensagens para o Webhook (versão corrigida)
-local function sendWebhook(title, description, color)
-    if not _G.webhookEnabled then return end
-    if not _G.webhookUrl or _G.webhookUrl == "" then
-        statusLabel.Text = "Configure o Webhook!"
-        return
-    end
-
-    local data = {
-        ["content"] = "",
-        ["embeds"] = {{
-            ["title"] = title,
-            ["description"] = description,
-            ["color"] = color,
-            ["footer"] = {
-                ["text"] = "Codex Ultra Script v2.1"
-            },
-            ["timestamp"] = DateTime.now():ToIsoDate()
-        }}
-    }
-    
-    local success, response = pcall(function()
-        return HttpService:RequestAsync({
-            Url = _G.webhookUrl,
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json"
-            },
-            Body = HttpService:JSONEncode(data)
-        })
-    end)
-    
-    if not success or (response and response.StatusCode ~= 204) then
-        warn("Erro no webhook:", response and response.StatusCode or "Falha na requisição")
-        statusLabel.Text = "Erro no Webhook!"
-        task.wait(1)
-        statusLabel.Text = "Status: Executando"
-    end
-end
-
--- Função para testar o webhook
-local function testWebhook()
-    sendWebhook(
-        "🔵 Conexão Estabelecida",
-        string.format([[
-📊 **Teste de Webhook**
-🎮 **Jogo:** %s
-👤 **Jogador:** %s
-⚡ **Status:** Conectado
-
-*Este é um teste de conexão do webhook.*]], 
-        game.PlaceId,
-        Players.LocalPlayer.Name),
-        3447003
-    )
-end
-
-print("✓ Script Codex Ultra Otimizado com Webhook Inicializado!")
-print("✓ Pressione N para ocultar a interface")
-print("✓ Pressione M para ativar/desativar o script")
-print("✓ Pressione B para um boost temporário")
-print("✓ Webhook " .. (_G.webhookEnabled and "ativado" or "desativado") .. " - Envie relatórios para Discord")
+print("✓ ✅ Script Codex Ultra V2.4 Inicializado - JÁ ATIVADO!")
+print("✓ 🟣 GUI Redesenhada com Roxo Translúcido")
+print("✓ ⚡ Dungeon SEMPRE SPAMANDO (não para nunca)")
+print("✓ 🎮 Pressione N para ocultar | M para desativar | B para turbo")
